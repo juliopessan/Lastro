@@ -50,7 +50,6 @@ export default async function DashboardPage() {
       <LedgerPanel liveLabel="Painel geral" meta={`${propostas.length} propostas geradas`}>
         <div className="figs">
           <Fig value={formatBrl(valorTotalGerado)} label="em propostas ativas" />
-          <Fig value={formatUsd(custoTotal)} label="custo total de geração (IA)" />
           <Fig value={String(propostas.length).padStart(2, "0")} label="propostas no sistema" />
         </div>
       </LedgerPanel>
@@ -104,6 +103,12 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 20, marginTop: 40 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
+          UKode Labs · custo total de geração (IA): {formatUsd(custoTotal)}
+        </p>
+      </footer>
     </main>
   );
 }

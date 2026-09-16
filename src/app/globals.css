@@ -226,6 +226,8 @@ a {
   font-size: 27px;
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .fig span {
   font-family: var(--mono);

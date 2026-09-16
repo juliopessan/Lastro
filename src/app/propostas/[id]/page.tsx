@@ -86,18 +86,15 @@ export default async function PropostaPage({
         <div className="figs">
           <Fig value={formatBrl(totalSetup)} label="investimento de setup" />
           {totalRecorrencia > 0 && (
-            <Fig value={`${formatBrl(totalRecorrencia)}/mês`} label="recorrência mensal" />
+            <Fig value={formatBrl(totalRecorrencia)} label="recorrência (por mês)" />
           )}
           <Fig value={String(briefing.frentes.length).padStart(2, "0")} label="frentes de escopo" />
           <Fig value={String(totalItensEscopo).padStart(2, "0")} label="itens de escopo" />
-          <Fig value={formatUsd(geracao.custoUsd)} label="custo de geração (IA)" />
         </div>
 
         <Measured titulo="Medido, não estimado">
           Valores, prazos e itens de escopo vieram direto do briefing preenchido — a IA não
-          alterou nenhum número. Custo de geração calculado a partir do uso real de tokens (
-          {geracao.tokensEntrada.toLocaleString("pt-BR")} entrada /{" "}
-          {geracao.tokensSaida.toLocaleString("pt-BR")} saída) na tabela de preço configurada.
+          alterou nenhum número.
         </Measured>
       </LedgerPanel>
 
@@ -351,7 +348,8 @@ export default async function PropostaPage({
 
       <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 24, marginTop: 24 }}>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.05em" }}>
-          UKode Labs — proposta gerada em {criadoData.toLocaleString("pt-BR")}
+          UKode Labs — proposta gerada em {criadoData.toLocaleString("pt-BR")} · custo de geração
+          (IA): {formatUsd(geracao.custoUsd)}
         </p>
       </footer>
     </main>

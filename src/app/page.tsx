@@ -1,113 +1,86 @@
 import Link from "next/link";
-import { listarPropostas } from "@/lib/store";
-import { Eyebrow, Fig, LedgerPanel, Voice } from "@/components/Ledger";
-import { formatBrl, formatUsd } from "@/lib/pricing";
+import { Eyebrow, Voice } from "@/components/Ledger";
 
-export const dynamic = "force-dynamic";
-
-function totalInvestimento(p: Awaited<ReturnType<typeof listarPropostas>>[number]) {
-  return p.briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0);
-}
-
-export default async function DashboardPage() {
-  const propostas = await listarPropostas();
-  const custoTotal = propostas.reduce((s, p) => s + p.geracao.custoUsd, 0);
-  const valorTotalGerado = propostas.reduce((s, p) => s + totalInvestimento(p), 0);
-
+export default function LandingPage() {
   return (
-    <main className="wrap section" style={{ paddingTop: 56 }}>
-      <header
-        className="no-print"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 24,
-          marginBottom: 48,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <Eyebrow>UKode Labs</Eyebrow>
-          <h1 style={{ fontSize: "clamp(28px, 3.6vw, 40px)" }}>
-            Propostas geradas com <Voice>critério</Voice>
-          </h1>
-          <p className="body" style={{ color: "var(--ink-soft)", maxWidth: "60ch", marginTop: 12 }}>
-            Os valores e prazos vêm do briefing que você preenche. A IA escreve só a narrativa —
-            e cada proposta traz o custo real da geração.
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/mercado" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
-            Preços de mercado
+    <main>
+      <div className="wrap" style={{ paddingTop: 32, paddingBottom: 32 }}>
+        <nav
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.08em" }}>
+            UKODE LABS
+          </span>
+          <Link href="/login" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+            Entrar
           </Link>
-          <Link href="/novo" className="btn">
-            + Nova proposta
-          </Link>
-        </div>
-      </header>
+        </nav>
+      </div>
 
-      <LedgerPanel liveLabel="Painel geral" meta={`${propostas.length} propostas geradas`}>
-        <div className="figs">
-          <Fig value={formatBrl(valorTotalGerado)} label="em propostas ativas" />
-          <Fig value={String(propostas.length).padStart(2, "0")} label="propostas no sistema" />
-        </div>
-      </LedgerPanel>
+      <section className="wrap section" style={{ paddingTop: 40 }}>
+        <Eyebrow>Estúdio de produto & IA</Eyebrow>
+        <h1
+          style={{
+            fontSize: "clamp(36px, 6vw, 64px)",
+            lineHeight: 1.04,
+            maxWidth: "16ch",
+            marginBottom: 24,
+          }}
+        >
+          Software e design pensados para o que é <Voice>medido</Voice>, não só bonito.
+        </h1>
+        <p style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "60ch", lineHeight: 1.65 }}>
+          A UKode Labs desenha e constrói produtos digitais — sites, sistemas internos,
+          integrações com IA — com um princípio simples: todo dado que aparece na tela precisa
+          deixar claro de onde veio. Nada de número bonito que ninguém consegue explicar depois.
+        </p>
+      </section>
 
-      <div style={{ marginTop: 56, display: "flex", flexDirection: "column", gap: 1 }}>
-        {propostas.length === 0 && (
-          <p style={{ color: "var(--ink-faint)", padding: "24px 0" }}>
-            Nenhuma proposta ainda. Crie a primeira em &ldquo;Nova proposta&rdquo;.
-          </p>
-        )}
-        {propostas.map((p) => (
-          <Link
-            key={p.id}
-            href={`/propostas/${p.id}`}
+      <section className="section">
+        <div className="wrap">
+          <Eyebrow>01 · O que fazemos</Eyebrow>
+          <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 16,
-              padding: "20px 4px",
-              borderTop: "1px solid var(--rule)",
-              flexWrap: "wrap",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 32,
             }}
           >
             <div>
-              <p style={{ fontWeight: 700, fontSize: 16 }}>{p.gerado.tituloProposta}</p>
-              <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 4 }}>
-                {p.briefing.cliente} · {new Date(p.criadoEm).toLocaleDateString("pt-BR")}
+              <h3 style={{ fontSize: 18, marginBottom: 10 }}>Produtos sob medida</h3>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14.5 }}>
+                Sites institucionais, catálogos, dashboards e sistemas internos — construídos
+                para o fluxo real do seu negócio, não para um template genérico.
               </p>
             </div>
-            <div style={{ display: "flex", gap: 24, alignItems: "baseline" }}>
-              <span
-                style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 13,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {formatBrl(totalInvestimento(p))}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-faint)",
-                }}
-              >
-                {formatUsd(p.geracao.custoUsd)} IA
-              </span>
+            <div>
+              <h3 style={{ fontSize: 18, marginBottom: 10 }}>IA aplicada com critério</h3>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14.5 }}>
+                Automação de propostas, atendimento e conteúdo — sempre deixando explícito o que
+                foi gerado e o que foi medido, para você defender cada entrega.
+              </p>
             </div>
-          </Link>
-        ))}
-      </div>
+            <div>
+              <h3 style={{ fontSize: 18, marginBottom: 10 }}>Design system Ledger</h3>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14.5 }}>
+                A mesma linguagem visual que usamos aqui: dado medido e conteúdo gerado nunca se
+                parecem, em nenhuma interface que entregamos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 20, marginTop: 40 }}>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
-          UKode Labs · custo total de geração (IA): {formatUsd(custoTotal)}
-        </p>
+      <footer className="section" style={{ paddingBottom: 56 }}>
+        <div className="wrap">
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
+            UKode Labs
+          </p>
+        </div>
       </footer>
     </main>
   );

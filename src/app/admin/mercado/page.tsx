@@ -10,7 +10,7 @@ export default function MercadoPage() {
   return (
     <main className="wrap" style={{ paddingTop: 56, paddingBottom: 100 }}>
       <div style={{ marginBottom: 32 }}>
-        <Link href="/" className="btn btn-ghost">
+        <Link href="/admin" className="btn btn-ghost">
           ← Todas as propostas
         </Link>
       </div>

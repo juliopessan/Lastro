@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { buscarProposta } from "@/lib/store";
 import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/Ledger";
 import { PrintButton } from "@/components/PrintButton";
 import { SignaturePad } from "@/components/SignaturePad";
 import { formatBrl, formatUsd } from "@/lib/pricing";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
+import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,9 @@ export default async function PropostaPage({
   const { id } = await params;
   const proposta = await buscarProposta(id);
   if (!proposta) notFound();
+
+  const cookieStore = await cookies();
+  const ehAdmin = verificarSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 
   const { briefing, gerado, geracao, criadoEm } = proposta;
 
@@ -44,9 +49,13 @@ export default async function PropostaPage({
         className="no-print"
         style={{ display: "flex", justifyContent: "space-between", marginBottom: 40 }}
       >
-        <Link href="/" className="btn btn-ghost">
-          ← Todas as propostas
-        </Link>
+        {ehAdmin ? (
+          <Link href="/admin" className="btn btn-ghost">
+            ← Todas as propostas
+          </Link>
+        ) : (
+          <span />
+        )}
         <PrintButton />
       </div>
 

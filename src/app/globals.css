@@ -1,26 +1,413 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Ground */
+  --paper: #f2efe8;
+  --paper-deep: #e7e3da;
+  --rule: #d6d2c8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Text */
+  --ink: #11110f;
+  --ink-soft: #55524b;
+  --ink-faint: #9c988e;
+
+  /* Signal pair — reserved. Never used decoratively. */
+  --clay: #ed6738;
+  --clay-deep: #c8481c;
+  --mint: #4f9c6b;
+
+  /* Ledger surface */
+  --ledger-bg: #14140f;
+  --ledger-ink: #efece4;
+  --ledger-dim: #85817a;
+  --ledger-rule: #2c2b25;
+  --ledger-mint: #8fcfa6;
+
+  --display: var(--font-display), "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --voice: var(--font-voice), "Instrument Serif", Georgia, "Times New Roman", serif;
+  --mono: var(--font-mono), "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --paper: #12120e;
+    --paper-deep: #1b1b16;
+    --rule: #2e2d27;
+    --ink: #f0ede5;
+    --ink-soft: #a8a49b;
+    --ink-faint: #6d6a63;
+    --clay: #f57d51;
+    --clay-deep: #ff9a71;
+    --mint: #7fc79a;
+    --ledger-bg: #0b0b08;
+    --ledger-rule: #232219;
   }
 }
 
+:root[data-theme="dark"] {
+  --paper: #12120e;
+  --paper-deep: #1b1b16;
+  --rule: #2e2d27;
+  --ink: #f0ede5;
+  --ink-soft: #a8a49b;
+  --ink-faint: #6d6a63;
+  --clay: #f57d51;
+  --clay-deep: #ff9a71;
+  --mint: #7fc79a;
+  --ledger-bg: #0b0b08;
+  --ledger-rule: #232219;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--display);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+@media (max-width: 700px) {
+  .wrap {
+    padding: 0 22px;
+  }
+}
+
+.section {
+  border-top: 1px solid var(--rule);
+  padding-top: 68px;
+  padding-bottom: 68px;
+}
+
+.section:first-child {
+  border-top: none;
+}
+
+/* ---------- Eyebrow ---------- */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 20px;
+}
+.eyebrow::before {
+  content: "";
+  width: 40px;
+  height: 1px;
+  background: var(--ink-faint);
+  flex: none;
+}
+
+/* ---------- Ledger ---------- */
+.ledger {
+  background: var(--ledger-bg);
+  color: var(--ledger-ink);
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+}
+.ledger-head .live {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.ledger-head .live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ledger-mint);
+}
+.ledger-head .meta {
+  color: var(--ledger-dim);
+}
+
+.bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ledger-rule);
+}
+.bar-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ledger-dim);
+}
+.bar-label b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ledger-ink);
+}
+.bar-track {
+  height: 5px;
+  background: var(--ledger-rule);
+}
+.bar-fill {
+  height: 100%;
+}
+
+.figs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ledger-rule);
+}
+.fig {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.fig span {
+  overflow-wrap: break-word;
+}
+.fig b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+.fig span {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ledger-dim);
+}
+
+/* ---------- Measured callout ---------- */
+.measured {
+  display: flex;
+  gap: 14px;
+  border: 1px solid var(--ledger-rule);
+  padding: 15px 16px;
+}
+.measured .tick {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--ledger-mint);
+  color: var(--ledger-bg);
+  font-size: 14px;
+  font-weight: 700;
+}
+.measured p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ledger-ink);
+}
+.measured .k {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ledger-dim);
+  display: block;
+  margin-bottom: 5px;
+}
+.measured code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ---------- Flag ---------- */
+.flag {
+  border-left: 2px solid var(--clay);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--clay) 9%, transparent);
+  padding: 15px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.flag-k {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clay-deep);
+}
+.flag p {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.flag code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ---------- Tables ---------- */
+.tbl-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+th,
+td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+/* ---------- Voice ---------- */
+.voice {
+  font-family: var(--voice);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Form controls ---------- */
+.field label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 7px;
+}
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: var(--display);
+  font-size: 14px;
+  border-radius: 2px;
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+.field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn:hover {
+  opacity: 0.85;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  background: var(--paper-deep);
+}
+.btn-danger {
+  border-color: var(--clay-deep);
+  color: var(--clay-deep);
+  background: transparent;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
 }

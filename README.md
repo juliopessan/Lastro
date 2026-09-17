@@ -32,6 +32,7 @@ A ideia central do projeto é nunca deixar o texto gerado se disfarçar de dado 
 - **O status do CRM (`src/lib/crm.ts`) é inferido quando não existe.** Propostas criadas antes do CRM não têm `status` salvo — nesses casos o sistema deduz "aceita" (se tem assinatura) ou "enviada" (se não tem), em vez de exigir uma migração de banco.
 - **O arrastar-e-soltar do CRM é HTML5 nativo** (`CrmBoard.tsx`), sem lib de drag-and-drop. Funciona bem em desktop; como a API nativa não cobre toque, o seletor de status ao lado de cada card continua sendo o caminho em celular/tablet.
 - **O PDF é a própria página, impressa.** `src/lib/pdf.ts` abre `/propostas/[id]` num Chrome headless (`puppeteer-core`) e usa `page.pdf()` — o mesmo CSS de impressão (`.no-print`, `.only-print`) que já existia pro botão "Imprimir/PDF" da interface. Nenhum layout duplicado numa lib de PDF à parte.
+- **O e-mail é uma tabela HTML, não um componente React.** Cliente de e-mail não roda CSS custom property, flexbox ou grid — `src/lib/email.ts` monta o HTML na mão, com tudo inline, no mesmo desenho do `emails/proposta-template.html` (esse arquivo é a versão pra colar direto no editor de template do Resend, com `{{merge tags}}` no lugar das variáveis).
 
 ```
                         /login ──► cookie de sessão (HMAC, sem banco)

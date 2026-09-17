@@ -1,27 +1,24 @@
-import { Resend } from "resend";
+<!--
+  Template de e-mail do Lastro — para colar no editor HTML do Resend.
 
-const DEFAULT_FROM = "Lastro <onboarding@resend.dev>";
+  Assunto sugerido: Proposta comercial — {{tituloProposta}}
+  Remetente sugerido: Lastro <seu-dominio-verificado@seudominio.com>
 
-function resendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY não configurada. Defina no arquivo .env.local.");
-  }
-  return new Resend(apiKey);
-}
+  Variáveis (troque pela sintaxe de merge tag que o seu editor do Resend
+  usa, caso não seja {{chave}} — em Broadcasts/Contacts o Resend usa
+  {{{NOME}}} com chaves triplas; em envio avulso via API, some essas
+  chaves por texto simples antes de enviar):
+    {{cliente}}         — nome do contato na empresa cliente
+    {{tituloProposta}}  — título da proposta gerada
+    {{link}}            — link público da proposta (/propostas/[id])
+    {{mensagem}}        — linha opcional personalizada
 
-// Mesmo layout de emails/proposta-template.html (o template que fica no
-// editor HTML do Resend) — só trocando {{chaves}} por variáveis reais.
-// Tudo inline, em tabela: é o que sobrevive a clientes de e-mail antigos
-// (Outlook incluído), sem CSS custom properties nem flex/grid.
-function emailHtml(params: {
-  cliente: string;
-  tituloProposta: string;
-  link: string;
-  mensagem?: string;
-}) {
-  const { cliente, tituloProposta, link, mensagem } = params;
-  return `<!DOCTYPE html>
+  Todas as cores e o layout em tabela seguem o design system "Ledger"
+  usado no resto do Lastro (paper/ink/mint), adaptado pra e-mail: sem
+  CSS custom properties, sem flexbox/grid, tudo inline — o jeito que
+  sobrevive a clientes de e-mail antigos (Outlook incluído).
+-->
+<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -34,6 +31,7 @@ function emailHtml(params: {
       <tr>
         <td align="center" style="padding: 40px 16px;">
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
+            <!-- Marca -->
             <tr>
               <td style="padding-bottom: 24px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
@@ -52,30 +50,31 @@ function emailHtml(params: {
               </td>
             </tr>
 
+            <!-- Rule -->
             <tr>
               <td style="border-top:1px solid #d6d2c8; font-size:0; line-height:0;">&nbsp;</td>
             </tr>
 
+            <!-- Saudação -->
             <tr>
               <td style="padding: 28px 0 0; font-family: Helvetica, Arial, sans-serif; font-size:15px; line-height:1.6; color:#11110f;">
-                Olá${cliente ? `, ${cliente}` : ""}
+                Olá, {{cliente}}
               </td>
             </tr>
             <tr>
               <td style="padding: 10px 0 0; font-family: Helvetica, Arial, sans-serif; font-size:15px; line-height:1.65; color:#55524b;">
-                Segue a proposta comercial <strong style="color:#11110f;">${tituloProposta}</strong>.${
-    mensagem ? ` ${mensagem}` : ""
-  }
+                Segue a proposta comercial <strong style="color:#11110f;">{{tituloProposta}}</strong>. {{mensagem}}
               </td>
             </tr>
 
+            <!-- CTA -->
             <tr>
               <td style="padding: 32px 0;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="background-color:#11110f;">
                       <a
-                        href="${link}"
+                        href="{{link}}"
                         style="display:inline-block; padding:14px 26px; font-family: Helvetica, Arial, sans-serif; font-size:13px; font-weight:500; letter-spacing:0.03em; color:#f2efe8; text-decoration:none;"
                       >
                         Revisar e assinar a proposta &rarr;
@@ -86,6 +85,7 @@ function emailHtml(params: {
               </td>
             </tr>
 
+            <!-- Selo "medido" -->
             <tr>
               <td style="background-color:#14140f; padding:18px 20px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -110,12 +110,14 @@ function emailHtml(params: {
               </td>
             </tr>
 
+            <!-- Nota do PDF -->
             <tr>
               <td style="padding: 20px 0 0; font-family: Helvetica, Arial, sans-serif; font-size:12.5px; line-height:1.6; color:#9c988e;">
                 O PDF em anexo é uma cópia desta proposta para os seus registros. A revisão e a assinatura digital são feitas pelo link acima.
               </td>
             </tr>
 
+            <!-- Rodapé -->
             <tr>
               <td style="border-top:1px solid #d6d2c8; padding-top:20px; margin-top:12px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
@@ -132,35 +134,4 @@ function emailHtml(params: {
       </tr>
     </table>
   </body>
-</html>`;
-}
-
-export async function enviarPropostaPorEmail(params: {
-  para: string;
-  cliente: string;
-  tituloProposta: string;
-  link: string;
-  mensagem?: string;
-  pdf: Buffer;
-}) {
-  const { para, cliente, tituloProposta, link, mensagem, pdf } = params;
-  const resend = resendClient();
-
-  const { data, error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || DEFAULT_FROM,
-    to: para,
-    subject: `Proposta comercial — ${tituloProposta}`,
-    html: emailHtml({ cliente, tituloProposta, link, mensagem }),
-    attachments: [
-      {
-        filename: `${tituloProposta}.pdf`,
-        content: pdf,
-      },
-    ],
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data;
-}
+</html>

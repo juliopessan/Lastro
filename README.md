@@ -43,18 +43,65 @@ Persistência é SQLite local via `better-sqlite3` (`src/lib/db.ts`) — sem ser
 
 ## Rodando localmente
 
+### 1. Pré-requisitos
+
+- [Node.js](https://nodejs.org) 20 ou mais recente (`node -v` pra conferir)
+- Uma chave de API da DeepSeek — crie uma em [platform.deepseek.com](https://platform.deepseek.com), na seção de API Keys
+
+### 2. Clonar e instalar
+
 ```bash
+git clone https://github.com/juliopessan/ukode-propostas-ia.git
+cd ukode-propostas-ia
 npm install
-cp .env.example .env.local   # preencha DEEPSEEK_API_KEY
-npm run dev
 ```
+
+### 3. Configurar o ambiente
+
+Copie o arquivo de exemplo:
+
+```bash
+cp .env.example .env.local
+```
+
+Abra `.env.local` e preencha cada variável:
 
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
 | `DEEPSEEK_API_KEY` | sim | Chave da API oficial da DeepSeek (`api.deepseek.com`) |
 | `AI_MODEL` | não | Modelo usado na geração — padrão `deepseek-flash` |
-| `ADMIN_PASSWORD` | sim | Senha única de acesso ao `/admin` |
-| `SESSION_SECRET` | sim | Segredo usado para assinar o cookie de sessão (qualquer string longa e aleatória) |
+| `ADMIN_PASSWORD` | sim | Senha única de acesso ao `/admin`. Escolha algo seu — o valor de exemplo do repositório não deve ir pra produção |
+| `SESSION_SECRET` | sim | Segredo usado para assinar o cookie de sessão. Gere um valor aleatório com: |
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### 4. Rodar em desenvolvimento
+
+```bash
+npm run dev
+```
+
+Abra [http://localhost:3000](http://localhost:3000) — essa é a landing page pública. Clique em "Entrar", digite o `ADMIN_PASSWORD` que você configurou, e você cai no painel em `/admin`. Na primeira execução, o SQLite é criado sozinho em `data/propostas.db` — não precisa rodar migração nem instalar banco nenhum.
+
+Para gerar sua primeira proposta: `/admin` → **+ Nova proposta** → preencha o briefing → **Gerar proposta**. O link da proposta em `/propostas/[id]` já pode ser aberto por qualquer pessoa, sem login — é esse que você manda pro cliente.
+
+### 5. Build de produção
+
+```bash
+npm run build
+npm run start
+```
+
+### Comandos disponíveis
+
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` | Sobe o servidor de desenvolvimento (Turbopack, hot reload) |
+| `npm run build` | Gera o build de produção |
+| `npm run start` | Roda o build de produção gerado por `npm run build` |
+| `npm run lint` | Roda o ESLint |
 
 ## Stack
 

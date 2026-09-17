@@ -18,7 +18,7 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 6. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / E-commerce MVP"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
 7. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho.
 8. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
-9. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida), com data do próximo contato e um histórico de notas por proposta, pra nada de follow-up se perder.
+9. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card tem data do próximo contato e um histórico de notas, pra nada de follow-up se perder.
 10. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, exclusão, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
 
 ## Como funciona
@@ -30,6 +30,7 @@ A ideia central do projeto é nunca deixar o texto gerado se disfarçar de dado 
 - **O custo da geração é real, não estimado.** Cada chamada ao modelo grava `tokensEntrada`/`tokensSaida` retornados pela API e calcula o custo em cima da tabela de preço configurada em `src/lib/pricing.ts` — é esse número que aparece no rodapé do painel.
 - **O acesso interno é separado do acesso do cliente.** `src/proxy.ts` intercepta toda rota `/admin/*` e a API de gestão (`/api/proposals/*`, exceto a de assinatura) e exige um cookie de sessão válido — sem sessão, redireciona pro `/login`. A rota pública `/propostas/[id]` e a assinatura nunca passam por essa checagem: o cliente só precisa do link.
 - **O status do CRM (`src/lib/crm.ts`) é inferido quando não existe.** Propostas criadas antes do CRM não têm `status` salvo — nesses casos o sistema deduz "aceita" (se tem assinatura) ou "enviada" (se não tem), em vez de exigir uma migração de banco.
+- **O arrastar-e-soltar do CRM é HTML5 nativo** (`CrmBoard.tsx`), sem lib de drag-and-drop. Funciona bem em desktop; como a API nativa não cobre toque, o seletor de status ao lado de cada card continua sendo o caminho em celular/tablet.
 - **O PDF é a própria página, impressa.** `src/lib/pdf.ts` abre `/propostas/[id]` num Chrome headless (`puppeteer-core`) e usa `page.pdf()` — o mesmo CSS de impressão (`.no-print`, `.only-print`) que já existia pro botão "Imprimir/PDF" da interface. Nenhum layout duplicado numa lib de PDF à parte.
 
 ```

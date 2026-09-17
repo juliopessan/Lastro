@@ -30,10 +30,16 @@ async function patchCrm(id: string, body: object) {
 
 function Card({
   card,
+  arrastando,
   onChange,
+  onDragStart,
+  onDragEnd,
 }: {
   card: CrmCard;
+  arrastando: boolean;
   onChange: (id: string, patch: Partial<CrmCard>) => void;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
 }) {
   const [aberta, setAberta] = useState(false);
   const [nota, setNota] = useState("");
@@ -75,6 +81,13 @@ function Card({
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", card.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart(card.id);
+      }}
+      onDragEnd={onDragEnd}
       style={{
         background: "var(--paper)",
         border: "1px solid var(--rule)",
@@ -82,12 +95,22 @@ function Card({
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        opacity: arrastando ? 0.4 : 1,
+        cursor: "grab",
       }}
     >
-      <Link href={`/propostas/${card.id}`}>
-        <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{card.titulo}</p>
-        <p style={{ color: "var(--ink-faint)", fontSize: 12, marginTop: 4 }}>{card.cliente}</p>
-      </Link>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <span
+          aria-hidden="true"
+          style={{ color: "var(--ink-faint)", fontSize: 13, lineHeight: 1.3, userSelect: "none" }}
+        >
+          ⠿
+        </span>
+        <Link href={`/propostas/${card.id}`} style={{ flex: 1 }}>
+          <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{card.titulo}</p>
+          <p style={{ color: "var(--ink-faint)", fontSize: 12, marginTop: 4 }}>{card.cliente}</p>
+        </Link>
+      </div>
 
       <p style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
         {formatBrl(card.valor)}
@@ -199,9 +222,22 @@ function Card({
 
 export function CrmBoard({ cards: cardsIniciais }: { cards: CrmCard[] }) {
   const [cards, setCards] = useState(cardsIniciais);
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null);
+  const [colunaAlvo, setColunaAlvo] = useState<StatusProposta | null>(null);
 
   function onChange(id: string, patch: Partial<CrmCard>) {
     setCards((atual) => atual.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+
+  async function moverPara(id: string, status: StatusProposta) {
+    const atual = cards.find((c) => c.id === id);
+    if (!atual || atual.status === status) return;
+    onChange(id, { status });
+    try {
+      await patchCrm(id, { status });
+    } catch {
+      alert("Não foi possível mudar o status.");
+    }
   }
 
   return (
@@ -211,8 +247,34 @@ export function CrmBoard({ cards: cardsIniciais }: { cards: CrmCard[] }) {
     >
       {STATUS_ORDEM.map((status) => {
         const doStatus = cards.filter((c) => c.status === status);
+        const emFoco = colunaAlvo === status;
         return (
-          <div key={status} style={{ flex: "0 0 240px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div
+            key={status}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              if (colunaAlvo !== status) setColunaAlvo(status);
+            }}
+            onDragLeave={() => setColunaAlvo((atual) => (atual === status ? null : atual))}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData("text/plain");
+              setColunaAlvo(null);
+              setArrastandoId(null);
+              if (id) moverPara(id, status);
+            }}
+            style={{
+              flex: "0 0 240px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: 8,
+              border: `1px dashed ${emFoco ? "var(--ink-faint)" : "transparent"}`,
+              background: emFoco ? "var(--paper-deep)" : "transparent",
+              transition: "background 0.1s, border-color 0.1s",
+            }}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <h3
                 style={{
@@ -229,12 +291,22 @@ export function CrmBoard({ cards: cardsIniciais }: { cards: CrmCard[] }) {
                 {String(doStatus.length).padStart(2, "0")}
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, minHeight: 40 }}>
               {doStatus.length === 0 && (
                 <p style={{ color: "var(--ink-faint)", fontSize: 12 }}>—</p>
               )}
               {doStatus.map((card) => (
-                <Card key={card.id} card={card} onChange={onChange} />
+                <Card
+                  key={card.id}
+                  card={card}
+                  arrastando={arrastandoId === card.id}
+                  onChange={onChange}
+                  onDragStart={setArrastandoId}
+                  onDragEnd={() => {
+                    setArrastandoId(null);
+                    setColunaAlvo(null);
+                  }}
+                />
               ))}
             </div>
           </div>

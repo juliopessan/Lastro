@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { listarPropostas } from "@/lib/store";
 import { Eyebrow, LedgerPanel, Fig, Voice } from "@/components/Ledger";
 import { LogoutButton } from "@/components/LogoutButton";
 import { PropostasList, PropostaResumo } from "@/components/PropostasList";
 import { formatBrl, formatUsd } from "@/lib/pricing";
 
+export const metadata: Metadata = { title: "Painel" };
 export const dynamic = "force-dynamic";
 
 function totalInvestimento(p: Awaited<ReturnType<typeof listarPropostas>>[number]) {
@@ -41,7 +43,7 @@ export default async function AdminPage() {
         }}
       >
         <div>
-          <Eyebrow>UKode Labs · admin</Eyebrow>
+          <Eyebrow>Lastro · admin</Eyebrow>
           <h1 style={{ fontSize: "clamp(28px, 3.6vw, 40px)" }}>
             Propostas geradas com <Voice>critério</Voice>
           </h1>
@@ -75,7 +77,7 @@ export default async function AdminPage() {
 
       <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 20, marginTop: 40 }}>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
-          UKode Labs · custo total de geração (IA): {formatUsd(custoTotal)}
+          Lastro · custo total de geração (IA): {formatUsd(custoTotal)}
         </p>
       </footer>
     </main>

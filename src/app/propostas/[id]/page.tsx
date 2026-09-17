@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Metadata } from "next";
 import { buscarProposta } from "@/lib/store";
 import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/Ledger";
 import { PrintButton } from "@/components/PrintButton";
@@ -10,6 +11,16 @@ import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const proposta = await buscarProposta(id);
+  return { title: proposta ? proposta.gerado.tituloProposta : "Proposta" };
+}
 
 export default async function PropostaPage({
   params,

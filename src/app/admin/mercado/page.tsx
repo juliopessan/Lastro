@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { Eyebrow } from "@/components/Ledger";
 import { CATEGORIAS_MERCADO, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { formatBrl } from "@/lib/pricing";
+
+export const metadata: Metadata = { title: "Preços de mercado" };
 
 export default function MercadoPage() {
   const porProjeto = CATEGORIAS_MERCADO.filter((c) => c.unidade === "projeto");
@@ -15,7 +18,7 @@ export default function MercadoPage() {
         </Link>
       </div>
 
-      <Eyebrow>UKode Labs · Referência de mercado</Eyebrow>
+      <Eyebrow>Lastro · Referência de mercado</Eyebrow>
       <h1 style={{ fontSize: "clamp(28px, 3.6vw, 40px)", marginBottom: 12 }}>
         Preços de mercado — São Paulo / Brasil
       </h1>

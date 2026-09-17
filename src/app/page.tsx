@@ -12,9 +12,14 @@ export default function LandingPage() {
             alignItems: "center",
           }}
         >
-          <span style={{ fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.08em" }}>
-            UKODE LABS
-          </span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>
+              Lastro
+            </span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.06em" }}>
+              por UKode Labs
+            </span>
+          </div>
           <Link href="/login" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
             Entrar
           </Link>
@@ -23,7 +28,7 @@ export default function LandingPage() {
 
       {/* HOOK */}
       <section className="wrap section" style={{ paddingTop: 40 }}>
-        <Eyebrow>Sistema de propostas com IA</Eyebrow>
+        <Eyebrow>Lastro · sistema de propostas com IA</Eyebrow>
         <h1
           style={{
             fontSize: "clamp(34px, 5.6vw, 58px)",
@@ -35,9 +40,10 @@ export default function LandingPage() {
           A proposta que hoje toma uma tarde <Voice>sai pronta</Voice> antes do café esfriar.
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "62ch", lineHeight: 1.65 }}>
-          Você preenche o briefing uma vez — cliente, escopo, valores, prazos. A IA escreve só a
-          narrativa. Os números que você digitou nunca são tocados pelo modelo. O resultado é um
-          documento pronto, com link pra assinatura, sem reescrever a proposta anterior à mão.
+          O Lastro é onde a UKode Labs monta suas propostas comerciais. Você preenche o briefing
+          uma vez — cliente, escopo, valores, prazos. A IA escreve só a narrativa. Os números que
+          você digitou nunca são tocados pelo modelo. O resultado é um documento pronto, com link
+          pra assinatura, sem reescrever a proposta anterior à mão.
         </p>
       </section>
 

@@ -138,7 +138,7 @@ export default function NovaPropostaPage() {
 
   return (
     <main className="wrap" style={{ paddingTop: 56, paddingBottom: 100 }}>
-      <Eyebrow>UKode Labs · Nova proposta</Eyebrow>
+      <Eyebrow>Lastro · Nova proposta</Eyebrow>
       <h1 style={{ fontSize: "clamp(26px, 3.2vw, 34px)", marginBottom: 8 }}>
         Briefing da proposta
       </h1>

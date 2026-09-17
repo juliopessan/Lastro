@@ -22,8 +22,22 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Propostas IA — UKode Labs",
-  description: "Sistema de geração de propostas comerciais da UKode Labs.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  title: {
+    default: "Lastro — propostas comerciais com IA",
+    template: "%s · Lastro",
+  },
+  description:
+    "Lastro gera propostas comerciais com IA a partir de um briefing estruturado: a IA escreve a narrativa, você controla os números. Um produto UKode Labs.",
+  applicationName: "Lastro",
+  openGraph: {
+    title: "Lastro — propostas comerciais com IA",
+    description:
+      "A IA escreve a narrativa, você controla os números. Um produto UKode Labs.",
+    siteName: "Lastro",
+    locale: "pt_BR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

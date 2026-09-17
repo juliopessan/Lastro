@@ -1,14 +1,14 @@
-# Propostas IA — UKode Labs
+# Lastro
 
-![Dashboard do sistema de propostas](docs/screenshot-dashboard.png)
+![Dashboard do Lastro](docs/screenshot-dashboard.png)
 
 Toda proposta comercial que a UKode Labs manda pra um cliente novo começa do mesmo jeito: abrir a última proposta parecida, trocar nome de cliente, recalcular os valores, reescrever o resumo executivo pra soar específico daquele projeto e torcer pra não ter esquecido de atualizar um número em algum canto do documento. Funciona, mas cada proposta rouba uma tarde — e quando você usa IA pra acelerar a redação, sobra a dúvida oposta: quais desses números o modelo realmente calculou e quais ele só *parece* ter calculado?
 
-Este projeto nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho braçal de montar o documento e deixar explícito, na própria proposta, o que é dado que você digitou e o que é texto que a IA escreveu.
+O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho braçal de montar o documento e deixar explícito, na própria proposta, o que é dado que você digitou e o que é texto que a IA escreveu. O nome é literal — lastro é o que dá respaldo real a alguma coisa, como o lastro de uma moeda. Aqui, todo número da proposta tem lastro no que você preencheu, nunca no que o modelo inventou.
 
 ## O que ele faz
 
-1. **`/` é a porta pública** — a landing page da UKode Labs, sem nenhum dado de cliente. Só tem um botão: "Entrar".
+1. **`/` é a porta pública** — a landing page do Lastro, sem nenhum dado de cliente. Só tem um botão: "Entrar".
 2. **Você entra com a senha do estúdio** em `/login` e cai no painel interno.
 3. **Você preenche um briefing estruturado** em `/admin/novo` — cliente, frentes de escopo, itens de investimento, condições de pagamento, recorrência mensal e cronograma. Todo número que importa é digitado por você, não pela IA.
 4. **A IA escreve só a narrativa.** Ao enviar o briefing, o `deepseek-flash` recebe apenas o que você preencheu e devolve resumo executivo, uma introdução por frente de escopo, próximos passos e um fechamento — nunca um valor ou prazo novo.

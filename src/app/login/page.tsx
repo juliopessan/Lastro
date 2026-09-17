@@ -45,7 +45,7 @@ function LoginForm() {
         maxWidth: 420,
       }}
     >
-      <Eyebrow>UKode Labs</Eyebrow>
+      <Eyebrow>Lastro · UKode Labs</Eyebrow>
       <h1 style={{ fontSize: 28, marginBottom: 28 }}>Acesso interno</h1>
 
       <form onSubmit={entrar} style={{ display: "flex", flexDirection: "column", gap: 20 }}>

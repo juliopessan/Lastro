@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, NotaCrm, Proposal, StatusProposta } from "./types";
+import { Assinatura, BriefingInput, ConteudoGerado, NotaCrm, Proposal, StatusProposta } from "./types";
 
 type Row = {
   id: string;
@@ -14,8 +14,9 @@ function rowParaProposta(row: Row): Proposal {
 }
 
 function salvarLinha(db: ReturnType<typeof getDb>, proposta: Proposal) {
-  db.prepare(`UPDATE propostas SET dados = ? WHERE id = ?`).run(
+  db.prepare(`UPDATE propostas SET dados = ?, cliente = ? WHERE id = ?`).run(
     JSON.stringify(proposta),
+    proposta.briefing.cliente,
     proposta.id
   );
 }
@@ -69,6 +70,27 @@ export async function assinarProposta(
   const proposta = rowParaProposta(row);
   if (proposta.assinatura) return proposta; // já assinada — não sobrescreve
   const atualizada: Proposal = { ...proposta, assinatura, status: "aceita" };
+  salvarLinha(db, atualizada);
+  return atualizada;
+}
+
+export async function atualizarProposta(
+  id: string,
+  patch: { briefing?: BriefingInput; gerado?: ConteudoGerado }
+): Promise<Proposal | null> {
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
+    | Row
+    | undefined;
+  if (!row) return null;
+  const proposta = rowParaProposta(row);
+
+  const atualizada: Proposal = {
+    ...proposta,
+    briefing: patch.briefing ?? proposta.briefing,
+    gerado: patch.gerado ?? proposta.gerado,
+  };
+
   salvarLinha(db, atualizada);
   return atualizada;
 }

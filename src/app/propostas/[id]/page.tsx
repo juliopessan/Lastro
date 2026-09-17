@@ -68,7 +68,14 @@ export default async function PropostaPage({
         ) : (
           <span />
         )}
-        <PrintButton />
+        <div style={{ display: "flex", gap: 12 }}>
+          {ehAdmin && (
+            <Link href={`/admin/propostas/${proposta.id}/editar`} className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+              Editar
+            </Link>
+          )}
+          <PrintButton />
+        </div>
       </div>
 
       {ehAdmin && (

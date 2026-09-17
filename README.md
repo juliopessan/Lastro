@@ -15,11 +15,12 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 3. **Você preenche um briefing estruturado** em `/admin/novo` — cliente, frentes de escopo, itens de investimento, condições de pagamento, recorrência mensal e cronograma. Todo número que importa é digitado por você, não pela IA.
 4. **A IA escreve só a narrativa.** Ao enviar o briefing, o `deepseek-flash` recebe apenas o que você preencheu e devolve resumo executivo, uma introdução por frente de escopo, próximos passos e um fechamento — nunca um valor ou prazo novo.
 5. **A proposta nasce pronta**, no layout de documento comercial, assinada com a identidade da UKode Labs, e fica salva com link próprio e público em `/propostas/[id]` — é esse link que você manda pro cliente, sem exigir login dele.
-6. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / E-commerce MVP"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
-7. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho.
-8. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
-9. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card tem data do próximo contato e um histórico de notas, pra nada de follow-up se perder.
-10. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, exclusão, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
+6. **Antes de mandar, você pode ajustar qualquer coisa** em `/admin/propostas/[id]/editar` — números do briefing ou o texto que a IA escreveu, sem chamar a IA de novo. Se a proposta já foi assinada, um aviso lembra que editar não desfaz a assinatura anterior.
+7. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / E-commerce MVP"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
+8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho.
+9. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
+10. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card tem data do próximo contato e um histórico de notas, pra nada de follow-up se perder.
+11. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, exclusão, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
 
 ## Como funciona
 

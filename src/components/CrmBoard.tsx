@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { STATUS_LABEL, STATUS_ORDEM, contatoAtrasado } from "@/lib/crm";
-import { StatusProposta, NotaCrm } from "@/lib/types";
+import { StatusProposta, NotaCrm, Contato } from "@/lib/types";
 import { formatBrl } from "@/lib/pricing";
 
 export type CrmCard = {
@@ -16,6 +16,7 @@ export type CrmCard = {
   proximoContato: string | null;
   notas: NotaCrm[];
   assinada: boolean;
+  contato?: Contato;
 };
 
 async function patchCrm(id: string, body: object) {
@@ -42,9 +43,27 @@ function Card({
   onDragEnd: () => void;
 }) {
   const [aberta, setAberta] = useState(false);
+  const [contatoAberto, setContatoAberto] = useState(false);
+  const [nome, setNome] = useState(card.contato?.nome || "");
+  const [emailContato, setEmailContato] = useState(card.contato?.email || "");
+  const [telefone, setTelefone] = useState(card.contato?.telefone || "");
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const atrasado = contatoAtrasado(card);
+
+  async function salvarContato() {
+    const contato: Contato = {
+      nome: nome.trim() || undefined,
+      email: emailContato.trim() || undefined,
+      telefone: telefone.trim() || undefined,
+    };
+    onChange(card.id, { contato });
+    try {
+      await patchCrm(card.id, { contato });
+    } catch {
+      alert("Não foi possível salvar o contato.");
+    }
+  }
 
   async function mudarStatus(status: StatusProposta) {
     onChange(card.id, { status });
@@ -115,6 +134,48 @@ function Card({
       <p style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
         {formatBrl(card.valor)}
       </p>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setContatoAberto((v) => !v)}
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 10.5,
+            color: card.contato?.email ? "var(--ink-soft)" : "var(--clay-deep)",
+            textAlign: "left",
+            textDecoration: "underline",
+          }}
+        >
+          {card.contato?.email ? card.contato.email : "sem contato cadastrado"}
+        </button>
+        {contatoAberto && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+            <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              onBlur={salvarContato}
+              placeholder="Nome do contato"
+              style={{ background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "5px 6px", fontSize: 11.5 }}
+            />
+            <input
+              type="email"
+              value={emailContato}
+              onChange={(e) => setEmailContato(e.target.value)}
+              onBlur={salvarContato}
+              placeholder="E-mail"
+              style={{ background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "5px 6px", fontSize: 11.5, fontFamily: "var(--mono)" }}
+            />
+            <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              onBlur={salvarContato}
+              placeholder="Telefone (opcional)"
+              style={{ background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "5px 6px", fontSize: 11.5, fontFamily: "var(--mono)" }}
+            />
+          </div>
+        )}
+      </div>
 
       <select
         value={card.status}

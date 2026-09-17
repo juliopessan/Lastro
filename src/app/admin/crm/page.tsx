@@ -21,6 +21,7 @@ export default async function CrmPage() {
     proximoContato: p.proximoContato ?? null,
     notas: p.notas ?? [],
     assinada: Boolean(p.assinatura),
+    contato: p.contato,
   }));
 
   return (

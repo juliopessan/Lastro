@@ -80,7 +80,7 @@ export default async function PropostaPage({
 
       {ehAdmin && (
         <div style={{ marginBottom: 40 }}>
-          <EmailSendForm propostaId={proposta.id} />
+          <EmailSendForm propostaId={proposta.id} contato={proposta.contato} />
         </div>
       )}
 

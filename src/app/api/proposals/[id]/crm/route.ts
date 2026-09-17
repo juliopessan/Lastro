@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atualizarCrm, buscarProposta } from "@/lib/store";
 import { STATUS_ORDEM } from "@/lib/crm";
-import { StatusProposta } from "@/lib/types";
+import { Contato, StatusProposta } from "@/lib/types";
 
 export async function PATCH(
   req: NextRequest,
@@ -14,10 +14,11 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => ({}));
-  const { status, proximoContato, nota } = body as {
+  const { status, proximoContato, nota, contato } = body as {
     status?: string;
     proximoContato?: string | null;
     nota?: string;
+    contato?: Contato;
   };
 
   if (status && !STATUS_ORDEM.includes(status as StatusProposta)) {
@@ -28,6 +29,7 @@ export async function PATCH(
     status: status as StatusProposta | undefined,
     proximoContato,
     nota,
+    contato,
   });
 
   return NextResponse.json(atualizada);

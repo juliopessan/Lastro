@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, BriefingInput, ConteudoGerado, NotaCrm, Proposal, StatusProposta } from "./types";
+import { Assinatura, BriefingInput, ConteudoGerado, Contato, NotaCrm, Proposal, StatusProposta } from "./types";
 
 type Row = {
   id: string;
@@ -99,6 +99,7 @@ export type PatchCrm = {
   status?: StatusProposta;
   proximoContato?: string | null;
   nota?: string;
+  contato?: Contato;
 };
 
 export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposal | null> {
@@ -112,6 +113,9 @@ export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposa
   const atualizada: Proposal = { ...proposta };
   if (patch.status) atualizada.status = patch.status;
   if (patch.proximoContato !== undefined) atualizada.proximoContato = patch.proximoContato;
+  if (patch.contato) {
+    atualizada.contato = { ...proposta.contato, ...patch.contato };
+  }
   if (patch.nota?.trim()) {
     const nota: NotaCrm = { texto: patch.nota.trim(), criadoEm: new Date().toISOString() };
     atualizada.notas = [...(proposta.notas || []), nota];

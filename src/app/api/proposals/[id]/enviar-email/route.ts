@@ -14,19 +14,24 @@ export async function POST(
   }
 
   const body = await req.json().catch(() => ({}));
-  const { emailCliente, mensagem } = body as { emailCliente?: string; mensagem?: string };
+  const { emailCliente, mensagem, nomeContato } = body as {
+    emailCliente?: string;
+    mensagem?: string;
+    nomeContato?: string;
+  };
 
   if (!emailCliente?.trim()) {
     return NextResponse.json({ erro: "Informe o e-mail do cliente." }, { status: 400 });
   }
 
   const link = `${req.nextUrl.origin}/propostas/${id}`;
+  const nome = nomeContato?.trim() || proposta.contato?.nome;
 
   try {
     const pdf = await gerarPdfProposta(link);
     await enviarPropostaPorEmail({
       para: emailCliente.trim(),
-      cliente: proposta.briefing.cliente,
+      cliente: nome || proposta.briefing.cliente,
       tituloProposta: proposta.gerado.tituloProposta,
       link,
       mensagem,
@@ -37,8 +42,11 @@ export async function POST(
     return NextResponse.json({ erro: msg }, { status: 502 });
   }
 
+  // Registra o contato pra não precisar digitar o e-mail de novo da
+  // próxima vez — é isso que faz o CRM saber quem é o cliente.
   const atualizada = await atualizarCrm(id, {
     nota: `Proposta enviada por e-mail para ${emailCliente.trim()}.`,
+    contato: { email: emailCliente.trim(), ...(nome ? { nome } : {}) },
   });
 
   return NextResponse.json(atualizada);

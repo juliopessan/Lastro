@@ -2,10 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Contato } from "@/lib/types";
 
-export function EmailSendForm({ propostaId }: { propostaId: string }) {
+export function EmailSendForm({
+  propostaId,
+  contato,
+}: {
+  propostaId: string;
+  contato?: Contato;
+}) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [nome, setNome] = useState(contato?.nome || "");
+  const [email, setEmail] = useState(contato?.email || "");
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -23,12 +31,11 @@ export function EmailSendForm({ propostaId }: { propostaId: string }) {
       const res = await fetch(`/api/proposals/${propostaId}/enviar-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailCliente: email, mensagem }),
+        body: JSON.stringify({ emailCliente: email, nomeContato: nome, mensagem }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.erro || "Erro ao enviar.");
       setEnviado(email);
-      setEmail("");
       setMensagem("");
       router.refresh();
     } catch (e) {
@@ -62,14 +69,24 @@ export function EmailSendForm({ propostaId }: { propostaId: string }) {
         Enviar por e-mail (admin)
       </p>
 
-      <div className="field">
-        <label>E-mail do cliente</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="cliente@empresa.com"
-        />
+      <div style={{ display: "flex", gap: 10 }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label>Nome do contato</label>
+          <input
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Opcional"
+          />
+        </div>
+        <div className="field" style={{ flex: 1 }}>
+          <label>E-mail do cliente</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="cliente@empresa.com"
+          />
+        </div>
       </div>
       <div className="field">
         <label>Mensagem (opcional)</label>

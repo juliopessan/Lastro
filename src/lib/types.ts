@@ -78,6 +78,12 @@ export type NotaCrm = {
   criadoEm: string;
 };
 
+export type Contato = {
+  nome?: string;
+  email?: string;
+  telefone?: string;
+};
+
 export type Proposal = {
   id: string;
   criadoEm: string;
@@ -88,4 +94,5 @@ export type Proposal = {
   status?: StatusProposta;
   proximoContato?: string | null;
   notas?: NotaCrm[];
+  contato?: Contato;
 };

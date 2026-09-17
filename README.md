@@ -2,9 +2,11 @@
 
 ![Dashboard do Lastro](docs/screenshot-dashboard.png)
 
-Toda proposta comercial que a UKode Labs manda pra um cliente novo começa do mesmo jeito: abrir a última proposta parecida, trocar nome de cliente, recalcular os valores, reescrever o resumo executivo pra soar específico daquele projeto e torcer pra não ter esquecido de atualizar um número em algum canto do documento. Funciona, mas cada proposta rouba uma tarde — e quando você usa IA pra acelerar a redação, sobra a dúvida oposta: quais desses números o modelo realmente calculou e quais ele só *parece* ter calculado?
+A reunião com o cliente novo ninguém delega no começo — é ali que você aprende o jogo, sente a dor de quem tá do outro lado, calibra o preço. Isso, na UKode Labs, continua sendo feito por gente. O problema começa depois: muita agência, muita consultoria, muito prestador de serviço bom demora dias pra mandar a proposta comercial daquela reunião. Não é força de expressão — às vezes são 3, 4 dias, às vezes uma semana, pra entregar um PDF que leva uns 30 minutos de trabalho de verdade pra escrever. Nesse intervalo o cliente esfria, compara com quem respondeu no mesmo dia, ou esquece por que te chamou.
 
-O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho braçal de montar o documento e deixar explícito, na própria proposta, o que é dado que você digitou e o que é texto que a IA escreveu. O nome é literal — lastro é o que dá respaldo real a alguma coisa, como o lastro de uma moeda. Aqui, todo número da proposta tem lastro no que você preencheu, nunca no que o modelo inventou.
+A parte mecânica de montar esse documento também não ajuda: abrir a última proposta parecida, trocar nome de cliente, recalcular os valores, reescrever o resumo executivo pra soar específico daquele projeto, torcer pra não ter esquecido de atualizar um número em algum canto. E quando você usa IA pra acelerar a redação, sobra a dúvida oposta: quais desses números o modelo realmente calculou e quais ele só *parece* ter calculado?
+
+O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho braçal de montar o documento — e o atraso de dias que ele costuma custar — e deixar explícito, na própria proposta, o que é dado que você digitou e o que é texto que a IA escreveu. O nome é literal — lastro é o que dá respaldo real a alguma coisa, como o lastro de uma moeda. Aqui, todo número da proposta tem lastro no que você preencheu, nunca no que o modelo inventou.
 
 ## O que ele faz
 

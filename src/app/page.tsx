@@ -40,10 +40,11 @@ export default function LandingPage() {
           A proposta que hoje toma uma tarde <Voice>sai pronta</Voice> antes do café esfriar.
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "62ch", lineHeight: 1.65 }}>
-          O Lastro é onde a UKode Labs monta suas propostas comerciais. Você preenche o briefing
-          uma vez — cliente, escopo, valores, prazos. A IA escreve só a narrativa. Os números que
-          você digitou nunca são tocados pelo modelo. O resultado é um documento pronto, com link
-          pra assinatura, sem reescrever a proposta anterior à mão.
+          Tem prestador de serviço bom que leva 3, 4 dias — às vezes uma semana — pra mandar a
+          proposta de uma reunião que já fechou. Nesse intervalo o cliente esfria, ou fecha com
+          quem respondeu primeiro. O Lastro é onde a UKode Labs resolveu isso: você preenche o
+          briefing uma vez — cliente, escopo, valores, prazos. A IA escreve só a narrativa. Os
+          números que você digitou nunca são tocados pelo modelo.
         </p>
       </section>
 
@@ -76,6 +77,7 @@ export default function LandingPage() {
               </h3>
               <ul style={{ display: "flex", flexDirection: "column", gap: 14, listStyle: "none", padding: 0 }}>
                 {[
+                  "Deixar a proposta acumulando na fila enquanto outra coisa fica mais urgente",
                   "Abrir a última proposta parecida e trocar nome, escopo e valores à mão",
                   "Reescrever o resumo executivo pra soar específico daquele cliente",
                   "Recalcular cada tabela de investimento e conferir se os totais batem",
@@ -95,7 +97,7 @@ export default function LandingPage() {
               </h3>
               <ul style={{ display: "flex", flexDirection: "column", gap: 14, listStyle: "none", padding: 0 }}>
                 {[
-                  "Preenche um briefing estruturado uma vez: cliente, escopo, investimento, prazos",
+                  "Sai da reunião e já preenche o briefing: cliente, escopo, investimento, prazos",
                   "A IA escreve a narrativa a partir do que você já decidiu — nunca inventa números",
                   "Toda cifra da proposta vem do seu formulário e fica marcada como medida",
                   "O cliente recebe um link, revisa e assina na hora — sem PDF, sem ida e volta",
@@ -146,7 +148,7 @@ export default function LandingPage() {
             }}
           >
             {[
-              { n: "01", t: "Briefing", d: "Cliente, frentes de escopo, investimento, condições de pagamento e cronograma — tudo que você já decidiu." },
+              { n: "01", t: "Briefing", d: "Logo depois da reunião, com tudo ainda fresco: cliente, frentes de escopo, investimento, condições de pagamento e cronograma." },
               { n: "02", t: "Narrativa por IA", d: "O modelo escreve resumo, introduções e próximos passos a partir do briefing, sem alterar nenhum valor." },
               { n: "03", t: "Link para o cliente", d: "A proposta fica pronta com link público. Ele revisa, compara com o mercado e assina na página." },
               { n: "04", t: "Painel de gestão", d: "Você acompanha tudo em /admin — quem assinou, quem está pendente e quanto cada geração custou." },

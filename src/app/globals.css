@@ -405,9 +405,16 @@ td.num {
   background: transparent;
 }
 
+.only-print {
+  display: none;
+}
+
 @media print {
   .no-print {
     display: none !important;
+  }
+  .only-print {
+    display: block;
   }
   body {
     background: #fff;

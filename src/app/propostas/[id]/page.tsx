@@ -5,6 +5,7 @@ import { Metadata } from "next";
 import { buscarProposta } from "@/lib/store";
 import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/Ledger";
 import { PrintButton } from "@/components/PrintButton";
+import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
 import { formatBrl, formatUsd } from "@/lib/pricing";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
@@ -69,6 +70,12 @@ export default async function PropostaPage({
         )}
         <PrintButton />
       </div>
+
+      {ehAdmin && (
+        <div style={{ marginBottom: 40 }}>
+          <EmailSendForm propostaId={proposta.id} />
+        </div>
+      )}
 
       <header style={{ marginBottom: 48 }}>
         <Eyebrow>UKode Labs · Proposta comercial</Eyebrow>
@@ -347,13 +354,19 @@ export default async function PropostaPage({
             </Measured>
           </div>
         ) : (
-          <div className="no-print">
-            <p style={{ color: "var(--ink-soft)", maxWidth: "60ch", marginBottom: 20 }}>
-              Ao assinar abaixo, você confirma o aceite desta proposta nas condições descritas
-              acima.
+          <>
+            <div className="no-print">
+              <p style={{ color: "var(--ink-soft)", maxWidth: "60ch", marginBottom: 20 }}>
+                Ao assinar abaixo, você confirma o aceite desta proposta nas condições descritas
+                acima.
+              </p>
+              <SignaturePad propostaId={proposta.id} />
+            </div>
+            <p className="only-print" style={{ color: "var(--ink-soft)", maxWidth: "60ch" }}>
+              Aceite pendente. Para validar e assinar digitalmente, acesse o link enviado por
+              e-mail.
             </p>
-            <SignaturePad propostaId={proposta.id} />
-          </div>
+          </>
         )}
       </section>
 

@@ -83,6 +83,7 @@ Abra `.env.local` e preencha cada variável:
 | `RESEND_API_KEY` | só pra enviar e-mail | Chave da API do [Resend](https://resend.com). Sem ela, tudo funciona menos o botão "Enviar proposta em PDF" |
 | `EMAIL_FROM` | não | Remetente, ex: `Lastro <propostas@seudominio.com>`. Sem domínio verificado no Resend, só dá pra mandar pro e-mail da sua própria conta lá |
 | `CHROME_EXECUTABLE_PATH` | não | Caminho do Chrome usado pra gerar o PDF. Padrão assume macOS; em Linux costuma ser `/usr/bin/google-chrome` ou `/usr/bin/chromium` |
+| `DATA_DIR` | não | Pasta onde o SQLite é criado. Padrão `./data`. Em produção, aponte pra um volume persistente (veja "Deploy" abaixo) |
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -114,6 +115,33 @@ npm run start
 | `npm run start` | Roda o build de produção gerado por `npm run build` |
 | `npm run lint` | Roda o ESLint |
 
+## Deploy
+
+O Lastro guarda tudo em SQLite num arquivo — precisa de um host com **disco
+persistente**, não de função serverless. Vercel/Netlify não servem sem trocar
+o banco por um serviço externo (o disco deles zera a cada deploy). Railway,
+Fly.io, Render ou qualquer VPS com Docker funcionam de primeira.
+
+```bash
+docker build -t lastro .
+docker run -d \
+  -p 3000:3000 \
+  -v lastro-data:/data \
+  --env-file .env.local \
+  --name lastro \
+  lastro
+```
+
+O `Dockerfile` já inclui o Chromium (pro PDF) e compila o `better-sqlite3`
+pra a arquitetura da imagem. `DATA_DIR=/data` e `CHROME_EXECUTABLE_PATH` já
+vêm configurados nele — o `--env-file` só precisa trazer as chaves de API,
+`ADMIN_PASSWORD` e `SESSION_SECRET`. O volume `lastro-data` é o que garante
+que as propostas sobrevivem a um redeploy.
+
+Em Railway ou Render: aponte o serviço pra este repositório (eles detectam o
+`Dockerfile` sozinhos), anexe um volume persistente em `/data`, e configure
+as mesmas variáveis de ambiente do `.env.local` no painel deles.
+
 ## Stack
 
 Next.js (App Router, TypeScript) · SQLite via `better-sqlite3` · DeepSeek Flash (API oficial, cliente OpenAI-compatible) · Resend para e-mail · `puppeteer-core` para o PDF · design system Ledger (interno, `src/app/globals.css`) para a interface.
@@ -122,4 +150,4 @@ Next.js (App Router, TypeScript) · SQLite via `better-sqlite3` · DeepSeek Flas
 
 A autenticação é uma senha única compartilhada, não contas por pessoa — todo mundo que acessa o `/admin` usa a mesma senha e enxerga as propostas de todo mundo. Está bem pro tamanho atual da UKode Labs; não é o desenho certo se o time crescer e precisar de permissões separadas por pessoa ou cliente.
 
-A geração de PDF precisa de um Chrome instalado na máquina que roda o servidor — funciona bem local ou num servidor próprio (VPS, Docker), mas não sai do zero num host serverless como a Vercel sem trocar `puppeteer-core` por uma variante compatível (ex: `@sparticuz/chromium`). Sem domínio verificado no Resend, o envio de e-mail também só funciona pro endereço da sua própria conta lá — verificar um domínio custa uns minutos e libera pra qualquer cliente.
+A geração de PDF precisa de um Chrome instalado na máquina que roda o servidor — o `Dockerfile` já resolve isso, mas um host serverless como a Vercel não serve sem trocar `puppeteer-core` por uma variante compatível (ex: `@sparticuz/chromium`) e o banco por um serviço externo. Sem domínio verificado no Resend, o envio de e-mail também só funciona pro endereço da sua própria conta lá — verificar um domínio custa uns minutos e libera pra qualquer cliente.

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, Proposal } from "./types";
+import { Assinatura, NotaCrm, Proposal, StatusProposta } from "./types";
 
 type Row = {
   id: string;
@@ -13,6 +13,13 @@ function rowParaProposta(row: Row): Proposal {
   return JSON.parse(row.dados) as Proposal;
 }
 
+function salvarLinha(db: ReturnType<typeof getDb>, proposta: Proposal) {
+  db.prepare(`UPDATE propostas SET dados = ? WHERE id = ?`).run(
+    JSON.stringify(proposta),
+    proposta.id
+  );
+}
+
 export async function salvarProposta(
   proposal: Omit<Proposal, "id" | "criadoEm">
 ): Promise<Proposal> {
@@ -21,6 +28,7 @@ export async function salvarProposta(
     ...proposal,
     id: randomUUID(),
     criadoEm: new Date().toISOString(),
+    status: "enviada",
   };
   db.prepare(
     `INSERT INTO propostas (id, criado_em, cliente, dados) VALUES (?, ?, ?, ?)`
@@ -60,10 +68,33 @@ export async function assinarProposta(
   if (!row) return null;
   const proposta = rowParaProposta(row);
   if (proposta.assinatura) return proposta; // já assinada — não sobrescreve
-  const atualizada: Proposal = { ...proposta, assinatura };
-  db.prepare(`UPDATE propostas SET dados = ? WHERE id = ?`).run(
-    JSON.stringify(atualizada),
-    id
-  );
+  const atualizada: Proposal = { ...proposta, assinatura, status: "aceita" };
+  salvarLinha(db, atualizada);
+  return atualizada;
+}
+
+export type PatchCrm = {
+  status?: StatusProposta;
+  proximoContato?: string | null;
+  nota?: string;
+};
+
+export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposal | null> {
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
+    | Row
+    | undefined;
+  if (!row) return null;
+  const proposta = rowParaProposta(row);
+
+  const atualizada: Proposal = { ...proposta };
+  if (patch.status) atualizada.status = patch.status;
+  if (patch.proximoContato !== undefined) atualizada.proximoContato = patch.proximoContato;
+  if (patch.nota?.trim()) {
+    const nota: NotaCrm = { texto: patch.nota.trim(), criadoEm: new Date().toISOString() };
+    atualizada.notas = [...(proposta.notas || []), nota];
+  }
+
+  salvarLinha(db, atualizada);
   return atualizada;
 }

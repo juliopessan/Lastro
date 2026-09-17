@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatBrl, formatUsd } from "@/lib/pricing";
+import { STATUS_LABEL, STATUS_ORDEM } from "@/lib/crm";
+import { StatusProposta } from "@/lib/types";
 
 export type PropostaResumo = {
   id: string;
@@ -12,19 +14,26 @@ export type PropostaResumo = {
   criadoEm: string;
   valor: number;
   custoUsd: number;
-  assinada: boolean;
+  status: StatusProposta;
+};
+
+const CORES_STATUS: Record<StatusProposta, string> = {
+  enviada: "var(--ink-faint)",
+  em_negociacao: "var(--ink-soft)",
+  aceita: "var(--mint)",
+  recusada: "var(--clay-deep)",
+  perdida: "var(--clay-deep)",
 };
 
 export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
-  const [status, setStatus] = useState<"todas" | "assinadas" | "pendentes">("todas");
+  const [status, setStatus] = useState<"todas" | StatusProposta>("todas");
   const [excluindo, setExcluindo] = useState<string | null>(null);
 
   const filtradas = useMemo(() => {
     return propostas.filter((p) => {
-      if (status === "assinadas" && !p.assinada) return false;
-      if (status === "pendentes" && p.assinada) return false;
+      if (status !== "todas" && p.status !== status) return false;
       if (busca.trim()) {
         const alvo = `${p.cliente} ${p.titulo}`.toLowerCase();
         if (!alvo.includes(busca.trim().toLowerCase())) return false;
@@ -75,8 +84,11 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
           }}
         >
           <option value="todas">Todas</option>
-          <option value="assinadas">Assinadas</option>
-          <option value="pendentes">Pendentes</option>
+          {STATUS_ORDEM.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -104,9 +116,7 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
               <p style={{ fontWeight: 700, fontSize: 16 }}>{p.titulo}</p>
               <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 4 }}>
                 {p.cliente} · {new Date(p.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
-                <span style={{ color: p.assinada ? "var(--mint)" : "var(--ink-faint)" }}>
-                  {p.assinada ? "assinada" : "pendente"}
-                </span>
+                <span style={{ color: CORES_STATUS[p.status] }}>{STATUS_LABEL[p.status]}</span>
               </p>
             </Link>
             <div style={{ display: "flex", gap: 20, alignItems: "center" }}>

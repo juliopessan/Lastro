@@ -5,6 +5,7 @@ import { Eyebrow, LedgerPanel, Fig, Voice } from "@/components/Ledger";
 import { LogoutButton } from "@/components/LogoutButton";
 import { PropostasList, PropostaResumo } from "@/components/PropostasList";
 import { formatBrl, formatUsd } from "@/lib/pricing";
+import { statusEfetivo } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Painel" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function AdminPage() {
     criadoEm: p.criadoEm,
     valor: totalInvestimento(p),
     custoUsd: p.geracao.custoUsd,
-    assinada: Boolean(p.assinatura),
+    status: statusEfetivo(p),
   }));
 
   return (
@@ -53,6 +54,9 @@ export default async function AdminPage() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/admin/crm" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+            CRM
+          </Link>
           <Link href="/admin/mercado" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
             Preços de mercado
           </Link>

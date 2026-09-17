@@ -66,6 +66,18 @@ export type Assinatura = {
   aceitoEm: string;
 };
 
+export type StatusProposta =
+  | "enviada"
+  | "em_negociacao"
+  | "aceita"
+  | "recusada"
+  | "perdida";
+
+export type NotaCrm = {
+  texto: string;
+  criadoEm: string;
+};
+
 export type Proposal = {
   id: string;
   criadoEm: string;
@@ -73,4 +85,7 @@ export type Proposal = {
   gerado: ConteudoGerado;
   geracao: Geracao;
   assinatura?: Assinatura;
+  status?: StatusProposta;
+  proximoContato?: string | null;
+  notas?: NotaCrm[];
 };

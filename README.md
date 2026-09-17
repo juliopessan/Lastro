@@ -20,7 +20,10 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho.
 9. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
 10. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card guarda o contato do cliente (nome, e-mail, telefone), a data do próximo follow-up e um histórico de notas — o e-mail cadastrado já pré-preenche o envio da próxima proposta, sem precisar caçar de novo.
-11. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, exclusão, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
+11. **Você recebe um aviso quando o cliente assina** (se configurar `ADMIN_EMAIL`) — um e-mail curto avisando quem assinou e link direto pro painel, sem precisar ficar checando o CRM.
+12. **Uma proposta parecida não começa do zero.** O botão "duplicar" no painel clona o briefing inteiro pra edição imediata — troca o cliente e os valores, sem preencher tudo de novo. O rascunho de uma proposta nova também se salva sozinho no navegador (`localStorage`), então fechar a aba sem querer não perde nada.
+13. **Proposta vencida não fica invisível.** A validade que você define no briefing vira um aviso em clay no painel e no CRM quando passa do prazo — só enquanto a proposta ainda está em aberto (uma já aceita, recusada ou perdida não "vence" mais).
+14. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, duplicar, excluir, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
 
 ## Como funciona
 
@@ -84,6 +87,7 @@ Abra `.env.local` e preencha cada variável:
 | `SESSION_SECRET` | sim | Segredo usado para assinar o cookie de sessão. Gere um valor aleatório com o comando abaixo |
 | `RESEND_API_KEY` | só pra enviar e-mail | Chave da API do [Resend](https://resend.com). Sem ela, tudo funciona menos o botão "Enviar proposta em PDF" |
 | `EMAIL_FROM` | não | Remetente, ex: `Lastro <propostas@seudominio.com>`. Sem domínio verificado no Resend, só dá pra mandar pro e-mail da sua própria conta lá |
+| `ADMIN_EMAIL` | não | Recebe um aviso quando um cliente assina uma proposta. Sem essa variável, a notificação simplesmente não é enviada — não quebra a assinatura |
 | `CHROME_EXECUTABLE_PATH` | não | Caminho do Chrome usado pra gerar o PDF. Padrão assume macOS; em Linux costuma ser `/usr/bin/google-chrome` ou `/usr/bin/chromium` |
 | `DATA_DIR` | não | Pasta onde o SQLite é criado. Padrão `./data`. Em produção, aponte pra um volume persistente (veja "Deploy" abaixo) |
 

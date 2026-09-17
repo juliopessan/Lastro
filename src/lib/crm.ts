@@ -28,3 +28,14 @@ export function contatoAtrasado(p: Pick<Proposal, "proximoContato" | "status" | 
   if (status === "aceita" || status === "recusada" || status === "perdida") return false;
   return new Date(p.proximoContato).getTime() < Date.now();
 }
+
+// Validade é criadoEm + validadeDias. Só importa enquanto a proposta ainda
+// está em jogo — uma já aceita/recusada/perdida não "vence" mais.
+export function propostaVencida(
+  p: Pick<Proposal, "criadoEm" | "status" | "assinatura" | "briefing">
+): boolean {
+  const status = statusEfetivo(p);
+  if (status === "aceita" || status === "recusada" || status === "perdida") return false;
+  const validoAte = new Date(p.criadoEm).getTime() + p.briefing.validadeDias * 86_400_000;
+  return validoAte < Date.now();
+}

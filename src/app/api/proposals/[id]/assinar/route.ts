@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assinarProposta, buscarProposta } from "@/lib/store";
+import { avisarAssinatura } from "@/lib/email";
 
 export async function POST(
   req: NextRequest,
@@ -33,6 +34,17 @@ export async function POST(
     cargo: cargo?.trim() || undefined,
     imagemPng,
     aceitoEm: new Date().toISOString(),
+  });
+
+  // Best-effort: se o aviso falhar (sem ADMIN_EMAIL, Resend fora do ar etc.),
+  // a assinatura já foi salva e não deve ser desfeita por causa disso.
+  avisarAssinatura({
+    cliente: proposta.briefing.cliente,
+    tituloProposta: proposta.gerado.tituloProposta,
+    nomeSignatario: nome.trim(),
+    linkAdmin: `${req.nextUrl.origin}/propostas/${id}`,
+  }).catch((err) => {
+    console.error("Falha ao enviar aviso de assinatura:", err);
   });
 
   return NextResponse.json(atualizada);

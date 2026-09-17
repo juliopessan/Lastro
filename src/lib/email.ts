@@ -164,3 +164,39 @@ export async function enviarPropostaPorEmail(params: {
   }
   return data;
 }
+
+// Aviso pro time quando o cliente assina — best-effort, quem chama não deve
+// deixar isso quebrar o fluxo de assinatura se o envio falhar.
+export async function avisarAssinatura(params: {
+  cliente: string;
+  tituloProposta: string;
+  nomeSignatario: string;
+  linkAdmin: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) return; // notificação é opcional — sem e-mail configurado, não faz nada
+
+  const { cliente, tituloProposta, nomeSignatario, linkAdmin } = params;
+  const resend = resendClient();
+
+  const html = `
+    <div style="font-family: Helvetica, Arial, sans-serif; color:#11110f; max-width:480px;">
+      <p style="font-family: 'Courier New', Courier, monospace; font-size:11px; letter-spacing:0.08em; color:#4f9c6b; text-transform:uppercase; margin:0 0 12px;">
+        ✓ Proposta assinada
+      </p>
+      <p style="font-size:15px; line-height:1.6;">
+        <strong>${nomeSignatario}</strong> (${cliente}) acabou de assinar <strong>${tituloProposta}</strong>.
+      </p>
+      <p style="margin-top:20px;">
+        <a href="${linkAdmin}" style="color:#11110f;">Ver no painel →</a>
+      </p>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || DEFAULT_FROM,
+    to: adminEmail,
+    subject: `Assinada: ${tituloProposta}`,
+    html,
+  });
+}

@@ -17,6 +17,7 @@ export type CrmCard = {
   notas: NotaCrm[];
   assinada: boolean;
   contato?: Contato;
+  vencida: boolean;
 };
 
 async function patchCrm(id: string, body: object) {
@@ -128,6 +129,11 @@ function Card({
         <Link href={`/propostas/${card.id}`} style={{ flex: 1 }}>
           <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{card.titulo}</p>
           <p style={{ color: "var(--ink-faint)", fontSize: 12, marginTop: 4 }}>{card.cliente}</p>
+          {card.vencida && (
+            <p style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--clay-deep)", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              validade vencida
+            </p>
+          )}
         </Link>
       </div>
 

@@ -53,6 +53,21 @@ export async function buscarProposta(id: string): Promise<Proposal | null> {
   return row ? rowParaProposta(row) : null;
 }
 
+export async function duplicarProposta(id: string): Promise<Proposal | null> {
+  const original = await buscarProposta(id);
+  if (!original) return null;
+  // Só briefing e narrativa seguem pra cópia — CRM (status, contato, notas,
+  // assinatura) começa do zero, porque é um prospect novo, não o mesmo negócio.
+  return salvarProposta({
+    briefing: original.briefing,
+    gerado: {
+      ...original.gerado,
+      tituloProposta: `${original.gerado.tituloProposta} (cópia)`,
+    },
+    geracao: original.geracao,
+  });
+}
+
 export async function excluirProposta(id: string): Promise<void> {
   const db = getDb();
   db.prepare(`DELETE FROM propostas WHERE id = ?`).run(id);

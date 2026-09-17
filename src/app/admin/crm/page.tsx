@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import { listarPropostas } from "@/lib/store";
 import { Eyebrow, Voice } from "@/components/Ledger";
 import { CrmBoard, CrmCard } from "@/components/CrmBoard";
-import { statusEfetivo } from "@/lib/crm";
+import { propostaVencida, statusEfetivo } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "CRM" };
 export const dynamic = "force-dynamic";
@@ -22,6 +22,7 @@ export default async function CrmPage() {
     notas: p.notas ?? [],
     assinada: Boolean(p.assinatura),
     contato: p.contato,
+    vencida: propostaVencida(p),
   }));
 
   return (

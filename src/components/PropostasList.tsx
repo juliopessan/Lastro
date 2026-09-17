@@ -15,6 +15,7 @@ export type PropostaResumo = {
   valor: number;
   custoUsd: number;
   status: StatusProposta;
+  vencida: boolean;
 };
 
 const CORES_STATUS: Record<StatusProposta, string> = {
@@ -30,6 +31,7 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState<"todas" | StatusProposta>("todas");
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [duplicando, setDuplicando] = useState<string | null>(null);
 
   const filtradas = useMemo(() => {
     return propostas.filter((p) => {
@@ -41,6 +43,19 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
       return true;
     });
   }, [propostas, busca, status]);
+
+  async function duplicar(id: string) {
+    setDuplicando(id);
+    try {
+      const res = await fetch(`/api/proposals/${id}/duplicar`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || "Falha ao duplicar.");
+      router.push(`/admin/propostas/${json.id}/editar`);
+    } catch {
+      alert("Não foi possível duplicar a proposta.");
+      setDuplicando(null);
+    }
+  }
 
   async function excluir(id: string) {
     if (!confirm("Excluir esta proposta? Não pode ser desfeito.")) return;
@@ -117,6 +132,12 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
               <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 4 }}>
                 {p.cliente} · {new Date(p.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
                 <span style={{ color: CORES_STATUS[p.status] }}>{STATUS_LABEL[p.status]}</span>
+                {p.vencida && (
+                  <>
+                    {" "}
+                    · <span style={{ color: "var(--clay-deep)" }}>validade vencida</span>
+                  </>
+                )}
               </p>
             </Link>
             <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -128,6 +149,15 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
               <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
                 {formatUsd(p.custoUsd)} IA
               </span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ padding: "6px 10px", fontSize: 10.5, border: "1px solid var(--rule)" }}
+                onClick={() => duplicar(p.id)}
+                disabled={duplicando === p.id}
+              >
+                {duplicando === p.id ? "duplicando…" : "duplicar"}
+              </button>
               <button
                 type="button"
                 className="btn btn-ghost btn-danger"

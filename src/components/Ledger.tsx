@@ -47,14 +47,15 @@ export function LedgerPanel({
   children,
 }: {
   liveLabel: string;
-  meta: string;
+  /** Telemetria da geração. Interno: só renderiza para quem está logado. */
+  meta?: string;
   children: ReactNode;
 }) {
   return (
     <div className="ledger">
       <div className="ledger-head">
         <span className="live">{liveLabel}</span>
-        <span className="meta">{meta}</span>
+        {meta && <span className="meta">{meta}</span>}
       </div>
       {children}
     </div>

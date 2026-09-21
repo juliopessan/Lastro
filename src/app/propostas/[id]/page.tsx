@@ -7,7 +7,7 @@ import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/L
 import { PrintButton } from "@/components/PrintButton";
 import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
-import { formatBrl, formatUsd } from "@/lib/pricing";
+import { formatBrl } from "@/lib/pricing";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 
@@ -104,9 +104,12 @@ export default async function PropostaPage({
         </p>
       </header>
 
+      {/* O painel abaixo é a capa de números da proposta. Tudo que é bastidor
+          da geração (modelo, tempo, aviso de revisão) só aparece para o admin:
+          o cliente — e o PDF, que é renderizado sem sessão — vê só o documento. */}
       <LedgerPanel
         liveLabel="Ledger da proposta"
-        meta={`${geracao.modelo} · ${geracao.duracaoMs}ms`}
+        meta={ehAdmin ? `${geracao.modelo} · ${geracao.duracaoMs}ms` : undefined}
       >
         <div className="figs">
           <Fig value={formatBrl(totalSetup)} label="investimento de setup" />
@@ -118,16 +121,19 @@ export default async function PropostaPage({
         </div>
 
         <Measured titulo="Medido, não estimado">
-          Valores, prazos e itens de escopo vieram direto do briefing preenchido — a IA não
-          alterou nenhum número.
+          {ehAdmin
+            ? "Valores, prazos e itens de escopo vieram direto do briefing preenchido — a IA não alterou nenhum número."
+            : "Os totais acima somam exatamente os itens listados no escopo e no investimento — nenhum valor aqui é faixa ou estimativa."}
         </Measured>
       </LedgerPanel>
 
-      <Flag titulo="Texto gerado por IA — revisar antes do envio">
-        O resumo executivo, as introduções de cada frente, os próximos passos e a nota final
-        foram redigidos por <code>{geracao.modelo}</code> a partir do briefing. Releia esses
-        trechos antes de enviar ao cliente.
-      </Flag>
+      {ehAdmin && (
+        <Flag titulo="Texto gerado por IA — revisar antes do envio">
+          O resumo executivo, as introduções de cada frente, os próximos passos e a nota final
+          foram redigidos por <code>{geracao.modelo}</code> a partir do briefing. Releia esses
+          trechos antes de enviar ao cliente. Este aviso não aparece para o cliente nem no PDF.
+        </Flag>
+      )}
 
       {/* Resumo executivo */}
       <section className="section">
@@ -291,9 +297,15 @@ export default async function PropostaPage({
               <Measured titulo="Medido a partir da tabela de referência">
                 Somando só os itens de setup com categoria de mercado atribuída: proposto{" "}
                 {formatBrl(propostoComparadoSetup)} contra uma faixa de mercado de{" "}
-                {formatBrl(mercadoSetupMin)} – {formatBrl(mercadoSetupMax)}. Cálculo feito a
-                partir de <code>src/lib/market-pricing.ts</code> ({FONTE_BENCHMARK}) — não é
-                pesquisa de mercado auditada, é a referência configurada pela UKode Labs.
+                {formatBrl(mercadoSetupMin)} – {formatBrl(mercadoSetupMax)}. A faixa vem da
+                tabela de referência da UKode Labs ({FONTE_BENCHMARK}) — é o parâmetro que
+                usamos para precificar, não uma pesquisa de mercado auditada.
+                {ehAdmin && (
+                  <>
+                    {" "}
+                    Fonte no código: <code>src/lib/market-pricing.ts</code>.
+                  </>
+                )}
               </Measured>
             </div>
           )}
@@ -379,8 +391,9 @@ export default async function PropostaPage({
 
       <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 24, marginTop: 24 }}>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.05em" }}>
-          UKode Labs — proposta gerada em {criadoData.toLocaleString("pt-BR")} · custo de geração
-          (IA): {formatUsd(geracao.custoUsd)}
+          UKode Labs · Proposta para {briefing.cliente} · emitida em{" "}
+          {criadoData.toLocaleDateString("pt-BR")} · válida até{" "}
+          {validade.toLocaleDateString("pt-BR")}
         </p>
       </footer>
     </main>

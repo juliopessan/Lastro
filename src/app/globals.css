@@ -409,6 +409,13 @@ td.num {
   display: none;
 }
 
+/* Margem zero na folha: o Chrome não pinta o fundo nas margens do @page, então
+   o respiro vem de padding no conteúdo (repetido a cada página, via clone). */
+@page {
+  size: A4;
+  margin: 0;
+}
+
 @media print {
   .no-print {
     display: none !important;
@@ -416,7 +423,17 @@ td.num {
   .only-print {
     display: block;
   }
-  body {
-    background: #fff;
+  .wrap {
+    padding: 16mm 12mm !important;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
+}
+
+/* Mantém o papel quente, o painel escuro do ledger e os selos mint/clay no PDF
+   e na impressão do navegador, sem depender de "Gráficos de segundo plano". */
+html,
+body {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }

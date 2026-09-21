@@ -19,9 +19,10 @@ export async function gerarPdfProposta(url: string): Promise<Buffer> {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle0" });
     const pdf = await page.pdf({
-      format: "A4",
       printBackground: true,
-      margin: { top: "16mm", bottom: "16mm", left: "12mm", right: "12mm" },
+      // Tamanho e margens vêm do @page em globals.css: assim o fundo (paper)
+      // preenche a folha inteira, inclusive as margens.
+      preferCSSPageSize: true,
     });
     return Buffer.from(pdf);
   } finally {

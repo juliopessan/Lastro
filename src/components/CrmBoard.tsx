@@ -10,7 +10,6 @@ export type CrmCard = {
   id: string;
   titulo: string;
   cliente: string;
-  criadoEm: string;
   valor: number;
   status: StatusProposta;
   proximoContato: string | null;

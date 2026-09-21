@@ -5,7 +5,7 @@ import { Eyebrow, LedgerPanel, Fig, Voice } from "@/components/Ledger";
 import { LogoutButton } from "@/components/LogoutButton";
 import { PropostasList, PropostaResumo } from "@/components/PropostasList";
 import { formatBrl, formatUsd } from "@/lib/pricing";
-import { propostaVencida, statusEfetivo } from "@/lib/crm";
+import { dataEmissao, propostaVencida, statusEfetivo } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Painel" };
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function AdminPage() {
     id: p.id,
     titulo: p.gerado.tituloProposta,
     cliente: p.briefing.cliente,
-    criadoEm: p.criadoEm,
+    emitidoEm: dataEmissao(p).toISOString(),
     valor: totalInvestimento(p),
     custoUsd: p.geracao.custoUsd,
     status: statusEfetivo(p),

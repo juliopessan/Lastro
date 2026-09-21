@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { getDb } from "./db";
 import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, Proposal, StatusProposta } from "./types";
 import { hashBriefing } from "./briefing-hash";
+import { dataEmissao } from "./crm";
 
 type Row = {
   id: string;
@@ -40,10 +41,13 @@ export async function salvarProposta(
 
 export async function listarPropostas(): Promise<Proposal[]> {
   const db = getDb();
-  const rows = db
-    .prepare(`SELECT * FROM propostas ORDER BY criado_em DESC`)
-    .all() as Row[];
-  return rows.map(rowParaProposta);
+  const rows = db.prepare(`SELECT * FROM propostas`).all() as Row[];
+  // Ordena pela data de emissão, não pela de criação: é essa que o painel
+  // mostra, e uma proposta reeditada hoje precisa subir pro topo em vez de
+  // ficar enterrada na posição de quando nasceu.
+  return rows
+    .map(rowParaProposta)
+    .sort((a, b) => dataEmissao(b).getTime() - dataEmissao(a).getTime());
 }
 
 export async function buscarProposta(id: string): Promise<Proposal | null> {

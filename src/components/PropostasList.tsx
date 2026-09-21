@@ -11,7 +11,8 @@ export type PropostaResumo = {
   id: string;
   titulo: string;
   cliente: string;
-  criadoEm: string;
+  /** Data da versão que está na rua — igual à do documento (lib/crm). */
+  emitidoEm: string;
   valor: number;
   custoUsd: number;
   status: StatusProposta;
@@ -130,7 +131,7 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
             <Link href={`/propostas/${p.id}`} style={{ flex: 1, minWidth: 220 }}>
               <p style={{ fontWeight: 700, fontSize: 16 }}>{p.titulo}</p>
               <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 4 }}>
-                {p.cliente} · {new Date(p.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
+                {p.cliente} · {new Date(p.emitidoEm).toLocaleDateString("pt-BR")} ·{" "}
                 <span style={{ color: CORES_STATUS[p.status] }}>{STATUS_LABEL[p.status]}</span>
                 {p.vencida && (
                   <>

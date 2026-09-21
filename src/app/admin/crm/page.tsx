@@ -15,7 +15,6 @@ export default async function CrmPage() {
     id: p.id,
     titulo: p.gerado.tituloProposta,
     cliente: p.briefing.cliente,
-    criadoEm: p.criadoEm,
     valor: p.briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0),
     status: statusEfetivo(p),
     proximoContato: p.proximoContato ?? null,

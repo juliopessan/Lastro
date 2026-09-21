@@ -142,6 +142,9 @@ export async function atualizarProposta(
     briefing,
     gerado: patch.gerado ?? proposta.gerado,
     geracao,
+    // Reemissão: o documento mudou, então a data de revisão anda — e é dela
+    // que a validade passa a contar (ver dataEmissao em lib/crm).
+    atualizadoEm: new Date().toISOString(),
   };
 
   salvarLinha(db, atualizada);

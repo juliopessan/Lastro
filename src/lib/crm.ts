@@ -29,13 +29,28 @@ export function contatoAtrasado(p: Pick<Proposal, "proximoContato" | "status" | 
   return new Date(p.proximoContato).getTime() < Date.now();
 }
 
-// Validade é criadoEm + validadeDias. Só importa enquanto a proposta ainda
-// está em jogo — uma já aceita/recusada/perdida não "vence" mais.
+type DatasProposta = Pick<Proposal, "criadoEm" | "atualizadoEm">;
+
+/**
+ * Data que vale como emissão do documento: a da última revisão, se houve.
+ * Editar uma proposta é reemiti-la — o cliente recebe outro documento, e o
+ * prazo de resposta conta dali, não da versão que ele nunca viu.
+ */
+export function dataEmissao(p: DatasProposta): Date {
+  return new Date(p.atualizadoEm ?? p.criadoEm);
+}
+
+export function dataValidade(p: DatasProposta & Pick<Proposal, "briefing">): Date {
+  return new Date(dataEmissao(p).getTime() + p.briefing.validadeDias * 86_400_000);
+}
+
+// Só importa enquanto a proposta ainda está em jogo — uma já aceita, recusada
+// ou perdida não "vence" mais. Usa a mesma data de validade que o documento
+// mostra, pra painel e proposta nunca discordarem sobre o prazo.
 export function propostaVencida(
-  p: Pick<Proposal, "criadoEm" | "status" | "assinatura" | "briefing">
+  p: DatasProposta & Pick<Proposal, "status" | "assinatura" | "briefing">
 ): boolean {
   const status = statusEfetivo(p);
   if (status === "aceita" || status === "recusada" || status === "perdida") return false;
-  const validoAte = new Date(p.criadoEm).getTime() + p.briefing.validadeDias * 86_400_000;
-  return validoAte < Date.now();
+  return dataValidade(p).getTime() < Date.now();
 }

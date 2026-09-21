@@ -9,6 +9,7 @@ import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
 import { formatBrl } from "@/lib/pricing";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
+import { dataValidade } from "@/lib/crm";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,11 @@ export default async function PropostaPage({
   const totalItensEscopo = briefing.frentes.reduce((s, f) => s + f.itens.length, 0);
 
   const criadoData = new Date(criadoEm);
-  const validade = new Date(criadoData.getTime() + briefing.validadeDias * 86400000);
+  // Editar a proposta é reemiti-la: o prazo de resposta conta da revisão, não
+  // da versão que o cliente nunca chegou a ver. Mesma conta que o painel e o
+  // CRM usam pra marcar vencida (lib/crm), pra não discordarem do documento.
+  const revisadoData = proposta.atualizadoEm ? new Date(proposta.atualizadoEm) : null;
+  const validade = dataValidade(proposta);
 
   const comparativoSetup = briefing.itensInvestimento
     .map((item) => ({ item, categoria: buscarCategoriaMercado(item.categoriaMercado) }))
@@ -99,8 +104,9 @@ export default async function PropostaPage({
           )}
         </p>
         <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 6, fontFamily: "var(--mono)" }}>
-          Emitida em {criadoData.toLocaleDateString("pt-BR")} · válida até{" "}
-          {validade.toLocaleDateString("pt-BR")}
+          Emitida em {criadoData.toLocaleDateString("pt-BR")}
+          {revisadoData && <> · revisada em {revisadoData.toLocaleDateString("pt-BR")}</>} · válida
+          até {validade.toLocaleDateString("pt-BR")}
         </p>
       </header>
 
@@ -401,8 +407,9 @@ export default async function PropostaPage({
       <footer style={{ borderTop: "1px solid var(--rule)", paddingTop: 24, marginTop: 24 }}>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.05em" }}>
           UKode Labs · Proposta para {briefing.cliente} · emitida em{" "}
-          {criadoData.toLocaleDateString("pt-BR")} · válida até{" "}
-          {validade.toLocaleDateString("pt-BR")}
+          {criadoData.toLocaleDateString("pt-BR")}
+          {revisadoData && <> · revisada em {revisadoData.toLocaleDateString("pt-BR")}</>} · válida
+          até {validade.toLocaleDateString("pt-BR")}
         </p>
       </footer>
     </main>

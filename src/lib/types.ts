@@ -94,6 +94,13 @@ export type Contato = {
 export type Proposal = {
   id: string;
   criadoEm: string;
+  /**
+   * Última vez que o documento em si foi alterado (briefing ou narrativa).
+   * Mexer no CRM — status, nota, contato, assinatura — não conta: aquilo é
+   * controle interno, não uma revisão da proposta que o cliente lê.
+   * Ausente enquanto a proposta nunca foi editada.
+   */
+  atualizadoEm?: string;
   briefing: BriefingInput;
   gerado: ConteudoGerado;
   geracao: Geracao;

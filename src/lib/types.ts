@@ -57,6 +57,13 @@ export type Geracao = {
   tokensSaida: number;
   custoUsd: number;
   duracaoMs: number;
+  /**
+   * Hash do escopo que produziu esta narrativa (ver lib/briefing-hash).
+   * Comparado com o hash do briefing atual, diz se o texto ainda é coerente
+   * com o escopo. Ausente nas propostas geradas antes desse controle existir —
+   * nesse caso não dá pra afirmar nada, e a tela não afirma.
+   */
+  briefingHash?: string;
 };
 
 export type Assinatura = {

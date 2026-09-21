@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { BriefingInput, ConteudoGerado, Geracao } from "./types";
 import { custoGeracaoUsd } from "./pricing";
+import { hashBriefing, resumoBriefingParaIa } from "./briefing-hash";
 
 const MODEL = process.env.AI_MODEL || "deepseek-flash";
 
@@ -34,23 +35,7 @@ Regras estritas:
 }`;
 
 function buildUserPrompt(briefing: BriefingInput): string {
-  return JSON.stringify(
-    {
-      cliente: briefing.cliente,
-      projetos: briefing.projetos,
-      contexto: briefing.contexto,
-      frentes: briefing.frentes.map((f) => ({
-        titulo: f.titulo,
-        itens: f.itens.map((i) => i.descricao),
-      })),
-      investimentoTotal: briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0),
-      condicoesPagamento: briefing.condicoesPagamento,
-      recorrenciaMensalTotal: briefing.recorrencia.reduce((s, r) => s + r.valorMensal, 0),
-      cronograma: briefing.cronograma,
-    },
-    null,
-    2
-  );
+  return JSON.stringify(resumoBriefingParaIa(briefing), null, 2);
 }
 
 export async function gerarConteudoProposta(
@@ -89,6 +74,7 @@ export async function gerarConteudoProposta(
     tokensSaida,
     custoUsd: custoGeracaoUsd(tokensEntrada, tokensSaida),
     duracaoMs,
+    briefingHash: hashBriefing(briefing),
   };
 
   return { conteudo, geracao };

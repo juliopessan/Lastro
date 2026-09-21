@@ -1,11 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eyebrow, Flag } from "@/components/Ledger";
 import { BriefingFields } from "@/components/BriefingFields";
-import { BriefingInput, ConteudoGerado, Proposal } from "@/lib/types";
+import { hashBriefing } from "@/lib/briefing-hash";
+import { BriefingInput, ConteudoGerado, Geracao, Proposal } from "@/lib/types";
+
+function IconeRefazer() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <polyline points="21 3 21 9 15 9" />
+    </svg>
+  );
+}
+
+function IconeCoerente() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="4 12.5 9 17.5 20 6" />
+    </svg>
+  );
+}
+
+function IconeDesatualizada() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5" />
+      <path d="M12 16.5h.01" />
+    </svg>
+  );
+}
 
 function narrativaDe(gerado: ConteudoGerado, titulo: string): string {
   return gerado.frentesNarrativa.find((n) => n.titulo === titulo)?.introducao ?? "";
@@ -20,8 +58,65 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
   const router = useRouter();
   const [dados, setDados] = useState<BriefingInput>(proposta.briefing);
   const [gerado, setGerado] = useState<ConteudoGerado>(proposta.gerado);
+  const [geracao, setGeracao] = useState<Geracao>(proposta.geracao);
   const [salvando, setSalvando] = useState(false);
+  const [liberando, setLiberando] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Coerência medida, não presumida: compara o hash do escopo que está na tela
+  // agora com o hash do escopo que produziu o texto. Propostas geradas antes
+  // desse controle não têm hash — aí a tela não afirma nada.
+  const hashAtual = useMemo(() => hashBriefing(dados), [dados]);
+  const coerencia: "coerente" | "desatualizada" | "desconhecida" = !geracao.briefingHash
+    ? "desconhecida"
+    : geracao.briefingHash === hashAtual
+      ? "coerente"
+      : "desatualizada";
+
+  async function liberarAssinatura() {
+    const ok = window.confirm(
+      "Remover a assinatura atual e liberar o campo para o cliente assinar de novo? A assinatura anterior fica registrada só como nota no CRM."
+    );
+    if (!ok) return;
+    setErro(null);
+    setLiberando(true);
+    try {
+      const res = await fetch(`/api/proposals/${proposta.id}/liberar-assinatura`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || "Erro ao liberar assinatura.");
+      router.refresh();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro desconhecido.");
+    } finally {
+      setLiberando(false);
+    }
+  }
+
+  async function regenerarNarrativa() {
+    const ok = window.confirm(
+      "Reescrever a narrativa a partir do escopo que está na tela? O texto desta seção será substituído — inclusive o que você ajustou à mão."
+    );
+    if (!ok) return;
+    setErro(null);
+    setRegenerando(true);
+    try {
+      const res = await fetch(`/api/proposals/${proposta.id}/regenerar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ briefing: dados }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || "Erro ao reescrever a narrativa.");
+      // Nada foi gravado ainda: o texto novo fica no formulário até você salvar.
+      setGerado(json.gerado);
+      setGeracao(json.geracao);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro desconhecido.");
+    } finally {
+      setRegenerando(false);
+    }
+  }
 
   function atualizarGerado<K extends keyof ConteudoGerado>(campo: K, valor: ConteudoGerado[K]) {
     setGerado((g) => ({ ...g, [campo]: valor }));
@@ -61,7 +156,7 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
       const res = await fetch(`/api/proposals/${proposta.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ briefing: dados, gerado: geradoFinal }),
+        body: JSON.stringify({ briefing: dados, gerado: geradoFinal, geracao }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.erro || "Erro ao salvar.");
@@ -91,22 +186,106 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
           <Flag titulo="Proposta já assinada">
             {proposta.assinatura.nome} aceitou esta proposta em{" "}
             {new Date(proposta.assinatura.aceitoEm).toLocaleString("pt-BR")}. Editar agora muda o
-            documento sem invalidar a assinatura anterior — avalie se não é o caso de gerar uma
-            proposta nova em vez de alterar uma que já foi aceita.
+            documento sem invalidar a assinatura anterior. Se as mudanças exigem novo aceite,
+            libere o campo de assinatura para o cliente assinar de novo.
           </Flag>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ border: "1px solid var(--rule)", marginTop: 12 }}
+            disabled={liberando}
+            onClick={liberarAssinatura}
+          >
+            {liberando ? "Liberando…" : "Liberar campo de assinatura"}
+          </button>
         </div>
       )}
 
       <p style={{ color: "var(--ink-soft)", maxWidth: "62ch", marginBottom: 40 }}>
-        Ajuste os números do briefing ou o texto que a IA escreveu. Nada aqui chama a IA de novo —
-        é edição direta, salva do jeito que você deixar.
+        Ajuste os números do briefing ou o texto que a IA escreveu. A edição é direta e salva do
+        jeito que você deixar — a IA só é chamada de novo se você clicar em{" "}
+        <strong>Atualizar narrativa</strong>.
       </p>
 
       <BriefingFields dados={dados} onChange={setDados} />
 
       {/* Narrativa gerada por IA */}
       <section style={{ marginTop: 40 }}>
-        <h3 style={{ fontSize: 15, marginBottom: 16 }}>Narrativa (escrita pela IA)</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
+          <h3 style={{ fontSize: 15 }}>Narrativa (escrita pela IA)</h3>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{
+              border: "1px solid var(--rule)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+            disabled={regenerando}
+            onClick={regenerarNarrativa}
+            title="Reescrever a narrativa a partir do escopo atual"
+          >
+            <IconeRefazer />
+            {regenerando ? "Reescrevendo…" : "Atualizar narrativa"}
+          </button>
+        </div>
+
+        <p
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontFamily: "var(--mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.13em",
+            textTransform: "uppercase",
+            marginBottom: 18,
+            color:
+              coerencia === "coerente"
+                ? "var(--mint)"
+                : coerencia === "desatualizada"
+                  ? "var(--clay-deep)"
+                  : "var(--ink-faint)",
+          }}
+        >
+          {coerencia === "coerente" && (
+            <>
+              <IconeCoerente /> Coerente com o escopo atual
+            </>
+          )}
+          {coerencia === "desatualizada" && (
+            <>
+              <IconeDesatualizada /> Escopo mudou depois deste texto
+            </>
+          )}
+          {coerencia === "desconhecida" && (
+            <>
+              <IconeDesatualizada /> Proposta antiga — não dá para verificar
+            </>
+          )}
+        </p>
+
+        {coerencia === "desatualizada" && (
+          <div style={{ marginBottom: 20 }}>
+            <Flag titulo="Narrativa desatualizada">
+              O escopo, os valores ou o cronograma mudaram depois que este texto foi escrito.
+              Clique em <strong>Atualizar narrativa</strong> para reescrevê-lo a partir do escopo
+              atual, ou ajuste os parágrafos à mão — o selo só volta ao verde quando o texto vier
+              do escopo que está na tela.
+            </Flag>
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="field">
             <label>Título da proposta</label>

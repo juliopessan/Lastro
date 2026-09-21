@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, BriefingInput, ConteudoGerado, Contato, NotaCrm, Proposal, StatusProposta } from "./types";
+import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, Proposal, StatusProposta } from "./types";
+import { hashBriefing } from "./briefing-hash";
 
 type Row = {
   id: string;
@@ -89,9 +90,33 @@ export async function assinarProposta(
   return atualizada;
 }
 
+// Remove a assinatura atual pra que o cliente possa assinar de novo (ex.: depois
+// de editar uma proposta já aceita). O registro da assinatura anterior fica numa
+// nota do CRM, pra não sumir sem rastro.
+export async function liberarAssinatura(id: string): Promise<Proposal | null> {
+  const proposta = await buscarProposta(id);
+  if (!proposta) return null;
+  if (!proposta.assinatura) return proposta;
+
+  const anterior = proposta.assinatura;
+  const nota: NotaCrm = {
+    texto: `Assinatura de ${anterior.nome} (${new Date(anterior.aceitoEm).toLocaleString("pt-BR")}) removida para permitir nova assinatura.`,
+    criadoEm: new Date().toISOString(),
+  };
+  const { assinatura: _removida, ...resto } = proposta;
+  void _removida;
+  const atualizada: Proposal = {
+    ...resto,
+    status: proposta.status === "aceita" ? "enviada" : proposta.status,
+    notas: [...(proposta.notas || []), nota],
+  };
+  salvarLinha(getDb(), atualizada);
+  return atualizada;
+}
+
 export async function atualizarProposta(
   id: string,
-  patch: { briefing?: BriefingInput; gerado?: ConteudoGerado }
+  patch: { briefing?: BriefingInput; gerado?: ConteudoGerado; geracao?: Geracao }
 ): Promise<Proposal | null> {
   const db = getDb();
   const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
@@ -100,10 +125,23 @@ export async function atualizarProposta(
   if (!row) return null;
   const proposta = rowParaProposta(row);
 
+  const briefing = patch.briefing ?? proposta.briefing;
+
+  // `geracao` só vem quando a narrativa foi reescrita pela IA nesta edição.
+  // O selo de coerência é uma afirmação sobre o que está sendo gravado, então
+  // o servidor confere: se o escopo mudou depois da geração, o hash declarado
+  // não bate e o selo cai fora em vez de virar uma garantia falsa.
+  let geracao = proposta.geracao;
+  if (patch.geracao) {
+    const confere = patch.geracao.briefingHash === hashBriefing(briefing);
+    geracao = { ...patch.geracao, briefingHash: confere ? patch.geracao.briefingHash : undefined };
+  }
+
   const atualizada: Proposal = {
     ...proposta,
-    briefing: patch.briefing ?? proposta.briefing,
+    briefing,
     gerado: patch.gerado ?? proposta.gerado,
+    geracao,
   };
 
   salvarLinha(db, atualizada);

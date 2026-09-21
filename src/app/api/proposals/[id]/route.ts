@@ -1,44 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { atualizarProposta, buscarProposta, excluirProposta } from "@/lib/store";
-
-const itemEscopoSchema = z.object({ descricao: z.string() });
-const frenteSchema = z.object({ titulo: z.string(), itens: z.array(itemEscopoSchema) });
-const itemInvestimentoSchema = z.object({
-  modulo: z.string(),
-  descricao: z.string(),
-  valor: z.number(),
-  categoriaMercado: z.string().optional(),
-});
-const itemRecorrenciaSchema = z.object({
-  servico: z.string(),
-  descricao: z.string(),
-  valorMensal: z.number(),
-  categoriaMercado: z.string().optional(),
-});
-const faseCronogramaSchema = z.object({
-  fase: z.string(),
-  periodo: z.string(),
-  entregas: z.string(),
-});
-const briefingSchema = z.object({
-  cliente: z.string(),
-  projetos: z.string(),
-  contexto: z.string(),
-  frentes: z.array(frenteSchema),
-  itensInvestimento: z.array(itemInvestimentoSchema),
-  condicoesPagamento: z.string(),
-  recorrencia: z.array(itemRecorrenciaSchema),
-  cronograma: z.array(faseCronogramaSchema),
-  validadeDias: z.number(),
-});
-const geradoSchema = z.object({
-  tituloProposta: z.string(),
-  resumoExecutivo: z.string(),
-  frentesNarrativa: z.array(z.object({ titulo: z.string(), introducao: z.string() })),
-  proximosPassos: z.array(z.string()),
-  notaFinal: z.string(),
-});
+import { briefingSchema, geracaoSchema, geradoSchema } from "@/lib/schemas";
 
 export async function GET(
   _req: NextRequest,
@@ -63,10 +25,11 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => ({}));
-  const { briefing: briefingBruto, gerado: geradoBruto } = body as {
-    briefing?: unknown;
-    gerado?: unknown;
-  };
+  const {
+    briefing: briefingBruto,
+    gerado: geradoBruto,
+    geracao: geracaoBruta,
+  } = body as { briefing?: unknown; gerado?: unknown; geracao?: unknown };
 
   if (!briefingBruto && !geradoBruto) {
     return NextResponse.json({ erro: "Nada para atualizar." }, { status: 400 });
@@ -80,10 +43,16 @@ export async function PATCH(
   if (gerado && !gerado.success) {
     return NextResponse.json({ erro: "Conteúdo gerado inválido." }, { status: 400 });
   }
+  // Só chega preenchido quando a narrativa foi reescrita pela IA nesta edição.
+  const geracao = geracaoBruta ? geracaoSchema.safeParse(geracaoBruta) : undefined;
+  if (geracao && !geracao.success) {
+    return NextResponse.json({ erro: "Dados de geração inválidos." }, { status: 400 });
+  }
 
   const atualizada = await atualizarProposta(id, {
     briefing: briefing?.data,
     gerado: gerado?.data,
+    geracao: geracao?.data,
   });
 
   return NextResponse.json(atualizada);

@@ -47,8 +47,11 @@ export function LedgerPanel({
   children,
 }: {
   liveLabel: string;
-  /** Telemetria da geração. Interno: só renderiza para quem está logado. */
-  meta?: string;
+  /**
+   * Linha da direita do cabeçalho. Aceita nó, e não só texto, porque em tela
+   * de documento a telemetria precisa vir marcada com `no-print`.
+   */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   return (

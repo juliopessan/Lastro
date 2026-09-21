@@ -79,7 +79,7 @@ export default async function PropostaPage({
       </div>
 
       {ehAdmin && (
-        <div style={{ marginBottom: 40 }}>
+        <div className="no-print" style={{ marginBottom: 40 }}>
           <EmailSendForm propostaId={proposta.id} contato={proposta.contato} />
         </div>
       )}
@@ -109,7 +109,13 @@ export default async function PropostaPage({
           o cliente — e o PDF, que é renderizado sem sessão — vê só o documento. */}
       <LedgerPanel
         liveLabel="Ledger da proposta"
-        meta={ehAdmin ? `${geracao.modelo} · ${geracao.duracaoMs}ms` : undefined}
+        meta={
+          ehAdmin ? (
+            <span className="no-print">
+              {geracao.modelo} · {geracao.duracaoMs}ms
+            </span>
+          ) : undefined
+        }
       >
         <div className="figs">
           <Fig value={formatBrl(totalSetup)} label="investimento de setup" />
@@ -128,11 +134,14 @@ export default async function PropostaPage({
       </LedgerPanel>
 
       {ehAdmin && (
-        <Flag titulo="Texto gerado por IA — revisar antes do envio">
-          O resumo executivo, as introduções de cada frente, os próximos passos e a nota final
-          foram redigidos por <code>{geracao.modelo}</code> a partir do briefing. Releia esses
-          trechos antes de enviar ao cliente. Este aviso não aparece para o cliente nem no PDF.
-        </Flag>
+        <div className="no-print">
+          <Flag titulo="Texto gerado por IA — revisar antes do envio">
+            O resumo executivo, as introduções de cada frente, os próximos passos e a nota final
+            foram redigidos por <code>{geracao.modelo}</code> a partir do briefing. Releia esses
+            trechos antes de enviar ao cliente. Este aviso é só seu: não vai para o cliente, nem
+            quando você imprime ou envia o PDF.
+          </Flag>
+        </div>
       )}
 
       {/* Resumo executivo */}
@@ -301,10 +310,10 @@ export default async function PropostaPage({
                 tabela de referência da UKode Labs ({FONTE_BENCHMARK}) — é o parâmetro que
                 usamos para precificar, não uma pesquisa de mercado auditada.
                 {ehAdmin && (
-                  <>
+                  <span className="no-print">
                     {" "}
                     Fonte no código: <code>src/lib/market-pricing.ts</code>.
-                  </>
+                  </span>
                 )}
               </Measured>
             </div>

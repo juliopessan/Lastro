@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { Metadata } from "next";
 import { buscarProposta } from "@/lib/store";
 import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/Ledger";
@@ -35,18 +35,6 @@ export default async function PropostaPage({
 
   const cookieStore = await cookies();
   const ehAdmin = verificarSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
-
-  // Endereço próprio, pra imprimir no bloco de aceite do PDF. NEXT_PUBLIC_SITE_URL
-  // vem antes do host da requisição porque o PDF é renderizado pelo servidor
-  // contra ele mesmo: sem essa variável em produção, o cliente receberia um
-  // link apontando pra máquina que gerou o arquivo.
-  const cabecalhos = await headers();
-  const host = cabecalhos.get("host");
-  const protocolo = cabecalhos.get("x-forwarded-proto") ?? "http";
-  const origem =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    (host ? `${protocolo}://${host}` : "");
-  const urlProposta = `${origem}/propostas/${id}`;
 
   const { briefing, gerado, geracao, criadoEm } = proposta;
 
@@ -408,87 +396,60 @@ export default async function PropostaPage({
               </p>
               <SignaturePad propostaId={proposta.id} />
             </div>
-            {/* Bloco de aceite do PDF/impressão. Na tela quem assina é o
-                SignaturePad acima; aqui não dá pra desenhar, então o aceite
-                digital vira um link clicável (o Chrome preserva <a> no PDF) e
-                a URL fica legível pra funcionar também no papel. As linhas de
-                punho são o caminho de quem imprime — esse aceite não passa
-                pelo CRM, tem que ser lançado à mão no painel. */}
-            <div className="only-print evitar-quebra">
-              <div style={{ border: "1px solid var(--rule)", padding: "22px 24px" }}>
-                <p
+            {/* Campo de assinatura do PDF/impressão — na tela quem assina é o
+                SignaturePad acima. Usa o painel escuro do ledger, mas sem o
+                tique mint do <Measured>: aqui não há nada assinado ainda, e
+                mint é reservado pro que já foi verificado. */}
+            <div className="only-print evitar-quebra ledger" style={{ padding: "26px 28px" }}>
+              <div style={{ border: "1px solid var(--ledger-rule)", padding: "22px 24px" }}>
+                <span
                   style={{
+                    display: "block",
                     fontFamily: "var(--mono)",
                     fontSize: 10.5,
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "var(--ink-faint)",
+                    color: "var(--ledger-dim)",
                     marginBottom: 12,
                   }}
                 >
-                  Assinatura digital
-                </p>
-                <p style={{ color: "var(--ink-soft)", maxWidth: "62ch", marginBottom: 14 }}>
-                  Para aceitar esta proposta, abra o endereço abaixo e assine digitalmente. O
-                  aceite fica registrado com o seu nome, a data e a hora — não é preciso imprimir,
-                  escanear nem responder este e-mail.
-                </p>
-                <a
-                  href={urlProposta}
+                  Aceite da proposta
+                </span>
+                <p
                   style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 13,
-                    color: "var(--ink)",
-                    textDecoration: "underline",
-                    wordBreak: "break-all",
+                    color: "var(--ledger-ink)",
+                    fontSize: 13.5,
+                    lineHeight: 1.55,
+                    maxWidth: "62ch",
+                    marginBottom: 38,
                   }}
                 >
-                  {urlProposta}
-                </a>
-
-                <div
-                  style={{
-                    borderTop: "1px solid var(--rule)",
-                    marginTop: 26,
-                    paddingTop: 20,
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "var(--mono)",
-                      fontSize: 10.5,
-                      letterSpacing: "0.14em",
-                      textTransform: "uppercase",
-                      color: "var(--ink-faint)",
-                      marginBottom: 26,
-                    }}
-                  >
-                    Ou assine nesta via
-                  </p>
-                  <div style={{ display: "flex", gap: 28, alignItems: "flex-end" }}>
-                    {[
-                      { rotulo: "Assinatura", flex: 2 },
-                      { rotulo: "Nome e cargo", flex: 2 },
-                      { rotulo: "Data", flex: 1 },
-                    ].map((campo) => (
-                      <div key={campo.rotulo} style={{ flex: campo.flex, minWidth: 0 }}>
-                        <div style={{ borderBottom: "1px solid var(--ink-faint)", height: 34 }} />
-                        <span
-                          style={{
-                            display: "block",
-                            marginTop: 7,
-                            fontFamily: "var(--mono)",
-                            fontSize: 10,
-                            letterSpacing: "0.12em",
-                            textTransform: "uppercase",
-                            color: "var(--ink-faint)",
-                          }}
-                        >
-                          {campo.rotulo}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  Ao assinar, o cliente declara aceite desta proposta nas condições, valores e
+                  prazos descritos acima.
+                </p>
+                <div style={{ display: "flex", gap: 28, alignItems: "flex-end" }}>
+                  {[
+                    { rotulo: "Assinatura", flex: 2 },
+                    { rotulo: "Nome e cargo", flex: 2 },
+                    { rotulo: "Data", flex: 1 },
+                  ].map((campo) => (
+                    <div key={campo.rotulo} style={{ flex: campo.flex, minWidth: 0 }}>
+                      <div style={{ borderBottom: "1px solid var(--ledger-dim)", height: 34 }} />
+                      <span
+                        style={{
+                          display: "block",
+                          marginTop: 7,
+                          fontFamily: "var(--mono)",
+                          fontSize: 10,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: "var(--ledger-dim)",
+                        }}
+                      >
+                        {campo.rotulo}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -90,20 +90,11 @@ function emailHtml(params: {
               <td style="background-color:#14140f; padding:18px 20px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="width:24px; vertical-align:top; padding-top:2px;">
-                      <table role="presentation" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="width:22px; height:22px; background-color:#8fcfa6; text-align:center; vertical-align:middle;">
-                            <span style="color:#14140f; font-size:12px; font-weight:700; line-height:22px;">&#10003;</span>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                    <td style="padding-left:12px; font-family: Helvetica, Arial, sans-serif; font-size:12.5px; line-height:1.55; color:#efece4;">
+                    <td style="font-family: Helvetica, Arial, sans-serif; font-size:12.5px; line-height:1.55; color:#efece4;">
                       <span style="display:block; font-family: 'Courier New', Courier, monospace; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:#85817a; margin-bottom:5px;">
-                        Medido, não estimado
+                        Estimativa
                       </span>
-                      Os valores e prazos desta proposta vêm do levantamento que fizemos com você — nenhum número aqui é faixa ou estimativa.
+                      Valores, prazos e itens são estimados e podem ser ajustados em consentimento com o cliente.
                     </td>
                   </tr>
                 </table>
@@ -149,7 +140,7 @@ export async function enviarPropostaPorEmail(params: {
   const { data, error } = await resend.emails.send({
     from: process.env.EMAIL_FROM || DEFAULT_FROM,
     to: para,
-    subject: `Proposta comercial — ${tituloProposta}`,
+    subject: `Proposta comercial: ${tituloProposta}`,
     html: emailHtml({ cliente, tituloProposta, link, mensagem }),
     attachments: [
       {

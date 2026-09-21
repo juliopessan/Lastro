@@ -132,11 +132,42 @@ export default async function PropostaPage({
           <Fig value={String(totalItensEscopo).padStart(2, "0")} label="itens de escopo" />
         </div>
 
-        <Measured titulo="Medido, não estimado">
-          {ehAdmin
-            ? "Valores, prazos e itens de escopo vieram direto do briefing preenchido — a IA não alterou nenhum número."
-            : "Os totais acima somam exatamente os itens listados no escopo e no investimento — nenhum valor aqui é faixa ou estimativa."}
-        </Measured>
+        {/* Duas leituras do mesmo painel. Pra dentro, o selo mint afirma
+            procedência: os números vieram do briefing, não do modelo — é uma
+            checagem de quem redigiu. Pra fora, o documento fala de condição
+            comercial, e aí o mint não pode aparecer: "medido, não estimado"
+            sobre um texto que diz "são estimados" seria um selo de verificado
+            contradizendo o próprio conteúdo. */}
+        {ehAdmin && (
+          <div className="no-print">
+            <Measured titulo="Medido, não estimado">
+              Valores, prazos e itens de escopo vieram direto do briefing preenchido — a IA não
+              alterou nenhum número.
+            </Measured>
+          </div>
+        )}
+        <div
+          className={ehAdmin ? "only-print" : undefined}
+          style={{ border: "1px solid var(--ledger-rule)", padding: "15px 16px" }}
+        >
+          <span
+            style={{
+              display: "block",
+              fontFamily: "var(--mono)",
+              fontSize: 10.5,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--ledger-dim)",
+              marginBottom: 5,
+            }}
+          >
+            Estimativa
+          </span>
+          <p style={{ fontSize: 13.5, lineHeight: 1.55, color: "var(--ledger-ink)" }}>
+            Valores, prazos e itens são estimados e podem ser ajustados em consentimento com o
+            cliente.
+          </p>
+        </div>
       </LedgerPanel>
 
       {ehAdmin && (
@@ -185,7 +216,9 @@ export default async function PropostaPage({
                         paddingTop: 10,
                       }}
                     >
-                      <span style={{ fontFamily: "var(--mono)", color: "var(--ink-faint)" }}>—</span>
+                      {/* Ponto médio, não travessão: com um item por linha, a
+                          fileira de traços dava ao documento cara de texto de IA. */}
+                      <span style={{ fontFamily: "var(--mono)", color: "var(--ink-faint)" }}>·</span>
                       {item.descricao}
                     </li>
                   ))}
@@ -313,7 +346,7 @@ export default async function PropostaPage({
                 Somando só os itens de setup com categoria de mercado atribuída: proposto{" "}
                 {formatBrl(propostoComparadoSetup)} contra uma faixa de mercado de{" "}
                 {formatBrl(mercadoSetupMin)} – {formatBrl(mercadoSetupMax)}. A faixa vem da
-                tabela de referência da UKode Labs ({FONTE_BENCHMARK}) — é o parâmetro que
+                tabela de referência da UKode Labs ({FONTE_BENCHMARK}): é o parâmetro que
                 usamos para precificar, não uma pesquisa de mercado auditada.
                 {ehAdmin && (
                   <span className="no-print">

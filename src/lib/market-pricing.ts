@@ -16,7 +16,7 @@ export type CategoriaMercado = {
   unidade: UnidadeMercado;
 };
 
-export const FONTE_BENCHMARK = "Benchmark de mercado SP/BR, perfil Enterprise / Senior Tech Lead — 2026";
+export const FONTE_BENCHMARK = "Benchmark de mercado SP/BR, perfil Enterprise / Senior Tech Lead, 2026";
 
 export const CATEGORIAS_MERCADO: CategoriaMercado[] = [
   {
@@ -41,7 +41,7 @@ export const CATEGORIAS_MERCADO: CategoriaMercado[] = [
   },
   {
     id: "ecommerce-mvp",
-    categoria: "Catálogo Digital / E-commerce MVP",
+    categoria: "Catálogo Digital / Projeto de E-commerce",
     escopo: "Portal de produtos, captura de leads e integração CRM/IA",
     faixaMin: 6000,
     faixaMax: 15000,

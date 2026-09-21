@@ -297,7 +297,7 @@ export function BriefingFields({
           <textarea
             value={dados.condicoesPagamento}
             onChange={(e) => atualizar("condicoesPagamento", e.target.value)}
-            placeholder="Ex: 30% no aceite, 30% na entrega do MVP, 40% no lançamento."
+            placeholder="Ex: 30% no aceite, 30% na entrega do projeto, 40% no lançamento."
           />
         </div>
       </section>

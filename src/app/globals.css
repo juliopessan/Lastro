@@ -428,6 +428,14 @@ td.num {
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
+  /* Um título não pode ser a última coisa de uma página, e o quadro de
+     assinatura não pode ser cortado ao meio entre duas folhas. */
+  .eyebrow {
+    break-after: avoid;
+  }
+  .evitar-quebra {
+    break-inside: avoid;
+  }
 }
 
 /* Mantém o papel quente, o painel escuro do ledger e os selos mint/clay no PDF

@@ -15,7 +15,7 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 3. **Você preenche um briefing estruturado** em `/admin/novo` — cliente, frentes de escopo, itens de investimento, condições de pagamento, recorrência mensal e cronograma. Todo número que importa é digitado por você, não pela IA.
 4. **A IA escreve só a narrativa.** Ao enviar o briefing, o `deepseek-flash` recebe apenas o que você preencheu e devolve resumo executivo, uma introdução por frente de escopo, próximos passos e um fechamento — nunca um valor ou prazo novo.
 5. **A proposta nasce pronta**, no layout de documento comercial, assinada com a identidade da UKode Labs, e fica salva com link próprio e público em `/propostas/[id]` — é esse link que você manda pro cliente, sem exigir login dele.
-6. **Antes de mandar, você pode ajustar qualquer coisa** em `/admin/propostas/[id]/editar` — números do briefing ou o texto que a IA escreveu, sem chamar a IA de novo. Se a proposta já foi assinada, um aviso lembra que editar não desfaz a assinatura anterior.
+6. **Antes de mandar, você pode ajustar qualquer coisa** em `/admin/propostas/[id]/editar` — números do briefing ou o texto que a IA escreveu. A edição é direta e não chama a IA; quando você quiser o texto reescrito a partir do escopo que está na tela, o botão "Atualizar narrativa" faz isso sob demanda, e um selo ao lado da seção diz se a narrativa ainda bate com o escopo atual. Se a proposta já foi assinada, um aviso lembra que editar não desfaz a assinatura — e um botão libera o campo pro cliente assinar de novo, registrando a assinatura antiga como nota no CRM.
 7. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / E-commerce MVP"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
 8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho.
 9. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
@@ -31,12 +31,14 @@ A ideia central do projeto é nunca deixar o texto gerado se disfarçar de dado 
 
 - **O briefing é a única fonte de números.** `src/lib/types.ts` define o formato do briefing; a IA (`src/lib/ai.ts`) recebe esse JSON, tem instrução explícita pra não inventar valores e devolve só os campos de texto (`resumoExecutivo`, `frentesNarrativa`, `proximosPassos`, `notaFinal`).
 - **A proposta renderizada mistura os dois com selo visual diferente.** `src/app/propostas/[id]/page.tsx` mostra os números do briefing dentro de um painel escuro ("ledger") com um selo verde de "medido, não estimado" — e um aviso laranja avisando que os parágrafos ali embaixo foram escritos por IA e merecem revisão antes do envio.
+- **O que é bastidor não vai pro cliente.** O aviso de revisão, o nome do modelo, o tempo de geração e os caminhos de arquivo do código só renderizam pra quem tem sessão. O PDF é gerado sem cookie, então ele entra pelo mesmo caminho do cliente e sai limpo pela mesma regra — não existe uma segunda versão do documento pra manter em sincronia.
+- **A coerência entre escopo e narrativa é medida, não presumida.** `src/lib/briefing-hash.ts` calcula um hash do recorte do briefing que a IA realmente enxerga, e a mesma função monta o prompt em `ai.ts` — assim os dois não podem divergir, e mexer num campo que o modelo nunca viu (a validade, por exemplo) não marca o texto como desatualizado à toa. O hash fica em `geracao.briefingHash`; a tela de edição recalcula a cada tecla e vira o selo pra clay quando o escopo muda. Ao salvar, o servidor confere o hash contra o briefing que está sendo gravado de fato, pra nunca guardar um selo verde falso. Proposta gerada antes desse controle não tem hash — aí a tela diz que não dá pra verificar, em vez de afirmar.
 - **O custo da geração é real, não estimado.** Cada chamada ao modelo grava `tokensEntrada`/`tokensSaida` retornados pela API e calcula o custo em cima da tabela de preço configurada em `src/lib/pricing.ts` — é esse número que aparece no rodapé do painel.
 - **O acesso interno é separado do acesso do cliente.** `src/proxy.ts` intercepta toda rota `/admin/*` e a API de gestão (`/api/proposals/*`, exceto a de assinatura) e exige um cookie de sessão válido — sem sessão, redireciona pro `/login`. A rota pública `/propostas/[id]` e a assinatura nunca passam por essa checagem: o cliente só precisa do link.
 - **O status do CRM (`src/lib/crm.ts`) é inferido quando não existe.** Propostas criadas antes do CRM não têm `status` salvo — nesses casos o sistema deduz "aceita" (se tem assinatura) ou "enviada" (se não tem), em vez de exigir uma migração de banco.
 - **O arrastar-e-soltar do CRM é HTML5 nativo** (`CrmBoard.tsx`), sem lib de drag-and-drop. Funciona bem em desktop; como a API nativa não cobre toque, o seletor de status ao lado de cada card continua sendo o caminho em celular/tablet.
 - **O contato se registra sozinho no primeiro envio.** Mandar uma proposta por e-mail salva `{ nome, email }` no `contato` da proposta (`/api/proposals/[id]/enviar-email`); da próxima vez, o formulário de envio já abre preenchido. Também dá pra cadastrar ou corrigir o contato direto no card do CRM, sem precisar mandar e-mail nenhum.
-- **O PDF é a própria página, impressa.** `src/lib/pdf.ts` abre `/propostas/[id]` num Chrome headless (`puppeteer-core`) e usa `page.pdf()` — o mesmo CSS de impressão (`.no-print`, `.only-print`) que já existia pro botão "Imprimir/PDF" da interface. Nenhum layout duplicado numa lib de PDF à parte.
+- **O PDF é a própria página, impressa.** `src/lib/pdf.ts` abre `/propostas/[id]` num Chrome headless (`puppeteer-core`) e usa `page.pdf()` — o mesmo CSS de impressão (`.no-print`, `.only-print`) que já existia pro botão "Imprimir/PDF" da interface. Nenhum layout duplicado numa lib de PDF à parte. O tamanho da folha vem do `@page` do CSS (`preferCSSPageSize`), com margem zero e o respiro como padding do `.wrap`: o Chrome não pinta fundo nas margens do `@page`, então sem isso o papel quente sairia com moldura branca em volta.
 - **O e-mail é uma tabela HTML, não um componente React.** Cliente de e-mail não roda CSS custom property, flexbox ou grid — `src/lib/email.ts` monta o HTML na mão, com tudo inline, no mesmo desenho do `emails/proposta-template.html` (esse arquivo é a versão pra colar direto no editor de template do Resend, com `{{merge tags}}` no lugar das variáveis).
 
 ```
@@ -64,8 +66,8 @@ Persistência é SQLite local via `better-sqlite3` (`src/lib/db.ts`) — sem ser
 ### 2. Clonar e instalar
 
 ```bash
-git clone https://github.com/juliopessan/ukode-propostas-ia.git
-cd ukode-propostas-ia
+git clone https://github.com/juliopessan/Lastro.git
+cd Lastro
 npm install
 ```
 
@@ -155,5 +157,7 @@ Next.js (App Router, TypeScript) · SQLite via `better-sqlite3` · DeepSeek Flas
 ## Limitações conhecidas
 
 A autenticação é uma senha única compartilhada, não contas por pessoa — todo mundo que acessa o `/admin` usa a mesma senha e enxerga as propostas de todo mundo. Está bem pro tamanho atual da UKode Labs; não é o desenho certo se o time crescer e precisar de permissões separadas por pessoa ou cliente.
+
+O selo de coerência da narrativa responde a mudança de escopo, não a qualidade do texto: ele fica verde quando o texto veio do escopo que está na tela, e não tem como saber se um parágrafo que você reescreveu à mão ficou coerente. Por isso um ajuste manual não devolve o selo ao verde — o que o sistema mede é a origem, e editar à mão não é algo que ele consiga verificar.
 
 A geração de PDF precisa de um Chrome instalado na máquina que roda o servidor — o `Dockerfile` já resolve isso, mas um host serverless como a Vercel não serve sem trocar `puppeteer-core` por uma variante compatível (ex: `@sparticuz/chromium`) e o banco por um serviço externo. Sem domínio verificado no Resend, o envio de e-mail também só funciona pro endereço da sua própria conta lá — verificar um domínio custa uns minutos e libera pra qualquer cliente.

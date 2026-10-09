@@ -1,5 +1,7 @@
 # Lastro
 
+[![CI](https://github.com/juliopessan/Lastro/actions/workflows/ci.yml/badge.svg)](https://github.com/juliopessan/Lastro/actions/workflows/ci.yml)
+
 ![Landing page do Lastro](docs/screenshot-landing.png)
 
 A reunião com o cliente novo ninguém delega no começo — é ali que você aprende o jogo, sente a dor de quem tá do outro lado, calibra o preço. Isso, na UKode Labs, continua sendo feito por gente. O problema começa depois: muita agência, muita consultoria, muito prestador de serviço bom demora dias pra mandar a proposta comercial daquela reunião. Não é força de expressão — às vezes são 3, 4 dias, às vezes uma semana, pra entregar um PDF que leva uns 30 minutos de trabalho de verdade pra escrever. Nesse intervalo o cliente esfria, compara com quem respondeu no mesmo dia, ou esquece por que te chamou.
@@ -16,8 +18,8 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 4. **A IA escreve só a narrativa.** Ao enviar o briefing, o `deepseek-flash` recebe apenas o que você preencheu e devolve resumo executivo, uma introdução por frente de escopo, próximos passos e um fechamento — nunca um valor ou prazo novo.
 5. **A proposta nasce pronta**, no layout de documento comercial, assinada com a identidade da UKode Labs, e fica salva com link próprio e público em `/propostas/[id]` — é esse link que você manda pro cliente, sem exigir login dele.
 6. **Antes de mandar, você pode ajustar qualquer coisa** em `/admin/propostas/[id]/editar` — números do briefing ou o texto que a IA escreveu. A edição é direta e não chama a IA; quando você quiser o texto reescrito a partir do escopo que está na tela, o botão "Atualizar narrativa" faz isso sob demanda, e um selo ao lado da seção diz se a narrativa ainda bate com o escopo atual. Se a proposta já foi assinada, um aviso lembra que editar não desfaz a assinatura — e um botão libera o campo pro cliente assinar de novo, registrando a assinatura antiga como nota no CRM.
-7. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / E-commerce MVP"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
-8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho. O PDF anexado traz um campo de assinatura no mesmo desenho do documento — painel escuro, assinatura, nome e cargo, data — pra quem preferir fechar no papel.
+7. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / Projeto de E-commerce"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
+8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho. Proposta vencida, recusada ou perdida não aceita assinatura: no lugar do quadro aparece o motivo, e pra reabrir uma vencida basta editar e salvar, o que reemite o documento com nova validade. O PDF anexado traz um campo de assinatura no mesmo desenho do documento — painel escuro, assinatura, nome e cargo, data — pra quem preferir fechar no papel.
 9. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
 10. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card guarda o contato do cliente (nome, e-mail, telefone), a data do próximo follow-up e um histórico de notas — o e-mail cadastrado já pré-preenche o envio da próxima proposta, sem precisar caçar de novo.
 11. **Você recebe um aviso quando o cliente assina** (se configurar `ADMIN_EMAIL`) — um e-mail curto avisando quem assinou e link direto pro painel, sem precisar ficar checando o CRM.
@@ -36,6 +38,8 @@ A ideia central do projeto é nunca deixar o texto gerado se disfarçar de dado 
 - **Editar é reemitir.** O documento carrega uma data só — a da última versão — e a validade conta dela. Uma proposta criada dia 16 e editada dia 21 chega ao cliente como "emitida em 21", porque é essa a proposta que ele tem na mão; mostrar as duas datas expunha um rascunho que ele nunca viu. O painel mostra essa mesma data e ordena por ela, pra que controlar a lista e ler o documento não deem respostas diferentes — uma proposta reeditada hoje sobe pro topo em vez de ficar na posição de quando nasceu. O histórico não se perde: `criadoEm` continua no banco, e cada revisão fica registrada nas notas do CRM. `dataEmissao`/`dataValidade` em `src/lib/crm.ts` são a única fonte dessa conta, usada tanto pelo documento quanto pelo aviso de "validade vencida" do painel e do CRM, pra que os dois não discordem do prazo. Mexer no CRM (status, nota, contato, assinatura) não conta como revisão: aquilo é controle interno, não uma versão nova da proposta.
 - **A coerência entre escopo e narrativa é medida, não presumida.** `src/lib/briefing-hash.ts` calcula um hash do recorte do briefing que a IA realmente enxerga, e a mesma função monta o prompt em `ai.ts` — assim os dois não podem divergir, e mexer num campo que o modelo nunca viu (a validade, por exemplo) não marca o texto como desatualizado à toa. O hash fica em `geracao.briefingHash`; a tela de edição recalcula a cada tecla e vira o selo pra clay quando o escopo muda. Ao salvar, o servidor confere o hash contra o briefing que está sendo gravado de fato, pra nunca guardar um selo verde falso. Proposta gerada antes desse controle não tem hash — aí a tela diz que não dá pra verificar, em vez de afirmar.
 - **O custo da geração é real, não estimado.** Cada chamada ao modelo grava `tokensEntrada`/`tokensSaida` retornados pela API e calcula o custo em cima da tabela de preço configurada em `src/lib/pricing.ts` — é esse número que aparece no rodapé do painel.
+- **A rota pública de assinatura trata tudo como entrada de estranho.** `src/app/api/proposals/[id]/assinar/route.ts` mede o corpo enquanto lê (teto de 512 KB, mesmo sem Content-Length), aceita a imagem só como PNG embutido em base64, valida o nome e recusa proposta vencida ou encerrada. A regra de quando dá pra assinar mora em `bloqueioAssinatura` (`src/lib/crm.ts`) e é a mesma usada pela página e pelo envio por e-mail, pra os três nunca discordarem. Todo texto que entra no HTML dos e-mails passa por `escapeHtml`.
+- **O login resiste a força bruta e a link malicioso.** O destino depois do login (`?next=`) só pode ser um caminho dentro do Lastro (`src/lib/redirect.ts`). Tentativas erradas têm duas travas em `src/lib/rate-limit.ts`: 5 por cliente e 30 no total a cada 15 minutos.
 - **O acesso interno é separado do acesso do cliente.** `src/proxy.ts` intercepta toda rota `/admin/*` e a API de gestão (`/api/proposals/*`, exceto a de assinatura) e exige um cookie de sessão válido — sem sessão, redireciona pro `/login`. A rota pública `/propostas/[id]` e a assinatura nunca passam por essa checagem: o cliente só precisa do link.
 - **O status do CRM (`src/lib/crm.ts`) é inferido quando não existe.** Propostas criadas antes do CRM não têm `status` salvo — nesses casos o sistema deduz "aceita" (se tem assinatura) ou "enviada" (se não tem), em vez de exigir uma migração de banco.
 - **O arrastar-e-soltar do CRM é HTML5 nativo** (`CrmBoard.tsx`), sem lib de drag-and-drop. Funciona bem em desktop; como a API nativa não cobre toque, o seletor de status ao lado de cada card continua sendo o caminho em celular/tablet.
@@ -62,7 +66,8 @@ Persistência é SQLite local via `better-sqlite3` (`src/lib/db.ts`) — sem ser
 
 ### 1. Pré-requisitos
 
-- [Node.js](https://nodejs.org) 20 ou mais recente (`node -v` pra conferir)
+- [Node.js](https://nodejs.org) 22 ou mais recente (`node -v` pra conferir); é a versão do CI e da imagem Docker
+- **Clone fora de pastas sincronizadas com nuvem** (iCloud Drive, OneDrive, Dropbox). No macOS, `~/Documents` costuma estar no iCloud: o sistema despeja arquivos do `node_modules` pra nuvem, o lint e o build travam esperando download, aparecem cópias de conflito (`arquivo 2.ts`) que quebram a checagem de tipos, e o SQLite com WAL pode perder escrita. Use algo como `~/code`.
 - Uma chave de API da DeepSeek — crie uma em [platform.deepseek.com](https://platform.deepseek.com), na seção de API Keys
 
 ### 2. Clonar e instalar
@@ -93,6 +98,7 @@ Abra `.env.local` e preencha cada variável:
 | `EMAIL_FROM` | não | Remetente, ex: `Lastro <propostas@seudominio.com>`. Sem domínio verificado no Resend, só dá pra mandar pro e-mail da sua própria conta lá |
 | `ADMIN_EMAIL` | não | Recebe um aviso quando um cliente assina uma proposta. Sem essa variável, a notificação simplesmente não é enviada — não quebra a assinatura |
 | `CHROME_EXECUTABLE_PATH` | não | Caminho do Chrome usado pra gerar o PDF. Padrão assume macOS; em Linux costuma ser `/usr/bin/google-chrome` ou `/usr/bin/chromium` |
+| `NEXT_PUBLIC_SITE_URL` | em produção, sim | Endereço público, ex: `https://propostas.seudominio.com`. É o que vai no link "Revisar e assinar" do e-mail. Sem ela, o link sai do host da requisição, que atrás do proxy da hospedagem pode ser um endereço interno |
 | `DATA_DIR` | não | Pasta onde o SQLite é criado. Padrão `./data`. Em produção, aponte pra um volume persistente (veja "Deploy" abaixo) |
 
 ```bash
@@ -124,6 +130,8 @@ npm run start
 | `npm run build` | Gera o build de produção |
 | `npm run start` | Roda o build de produção gerado por `npm run build` |
 | `npm run lint` | Roda o ESLint |
+| `npm run typecheck` | Gera os tipos de rota do Next (`next typegen`) e roda o `tsc`. Num clone limpo, o `tsc` sozinho falha sem esse passo |
+| `npm test` | Roda os testes (Vitest) |
 
 ## Deploy
 
@@ -148,9 +156,26 @@ vêm configurados nele — o `--env-file` só precisa trazer as chaves de API,
 `ADMIN_PASSWORD` e `SESSION_SECRET`. O volume `lastro-data` é o que garante
 que as propostas sobrevivem a um redeploy.
 
+A imagem roda como usuário sem privilégio, com fuso `America/Sao_Paulo` (as
+datas da proposta são renderizadas no servidor) e um `HEALTHCHECK` em
+`/login`. Num volume nomeado, como acima, a permissão de `/data` já vem certa;
+num bind mount de pasta do host, a pasta precisa ser gravável pelo usuário do
+contêiner.
+
+Em produção, defina `NEXT_PUBLIC_SITE_URL` com o endereço público: é ele que
+vai no link do e-mail ao cliente.
+
 Em Railway ou Render: aponte o serviço pra este repositório (eles detectam o
 `Dockerfile` sozinhos), anexe um volume persistente em `/data`, e configure
 as mesmas variáveis de ambiente do `.env.local` no painel deles.
+
+## CI
+
+Cada push na `main` e cada pull request roda o workflow
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), em dois jobs:
+
+1. **qualidade:** lint, typecheck, testes, build e `npm audit` das dependências de produção (falha com vulnerabilidade alta ou crítica).
+2. **docker:** constrói a imagem e roda [`scripts/smoke-docker.sh`](scripts/smoke-docker.sh), que sobe o contêiner e confere o caminho de produção: healthcheck, processo sem root, login, SQLite gravando no volume, página pública e o PDF impresso pelo Chrome de dentro do contêiner.
 
 ## Stack
 
@@ -163,5 +188,7 @@ A autenticação é uma senha única compartilhada, não contas por pessoa — t
 O aceite em papel não fecha o ciclo. Quem assina pelo quadro impresso do PDF devolve um arquivo que o sistema não lê: não existe assinatura gravada, o status não muda sozinho e o aviso de assinatura não dispara. Nesse caminho você precisa marcar "Aceita" à mão no CRM. Só o aceite feito na página é rastreado ponta a ponta.
 
 O selo de coerência da narrativa responde a mudança de escopo, não a qualidade do texto: ele fica verde quando o texto veio do escopo que está na tela, e não tem como saber se um parágrafo que você reescreveu à mão ficou coerente. Por isso um ajuste manual não devolve o selo ao verde — o que o sistema mede é a origem, e editar à mão não é algo que ele consiga verificar.
+
+O limite de tentativas de login vive na memória do processo. Vale pra uma instância só (o Docker do projeto), zera quando o servidor reinicia e, sob ataque, a trava global fecha o login pra todos até a janela de 15 minutos passar. Com várias instâncias, precisaria de um armazenamento compartilhado.
 
 A geração de PDF precisa de um Chrome instalado na máquina que roda o servidor — o `Dockerfile` já resolve isso, mas um host serverless como a Vercel não serve sem trocar `puppeteer-core` por uma variante compatível (ex: `@sparticuz/chromium`) e o banco por um serviço externo. Sem domínio verificado no Resend, o envio de e-mail também só funciona pro endereço da sua própria conta lá — verificar um domínio custa uns minutos e libera pra qualquer cliente.

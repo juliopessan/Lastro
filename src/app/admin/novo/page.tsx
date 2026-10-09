@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eyebrow } from "@/components/Ledger";
+import { Eyebrow, Flag } from "@/components/Ledger";
+import { ImportarDocumento, ResultadoImportacao } from "@/components/ImportarDocumento";
 import { BriefingFields, briefingVazio } from "@/components/BriefingFields";
 import { BriefingInput } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export default function NovaPropostaPage() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+  const [importacao, setImportacao] = useState<Omit<ResultadoImportacao, "briefing"> | null>(null);
   const carregouRef = useRef(false);
 
   // Restaura um rascunho salvo (aba fechada sem enviar) só na primeira
@@ -40,13 +42,20 @@ export default function NovaPropostaPage() {
     carregouRef.current = true;
   }, []);
 
+  const ehVazio =
+    !dados.cliente.trim() &&
+    !dados.projetos.trim() &&
+    !dados.contexto.trim() &&
+    dados.frentes.every((f) => !f.titulo.trim());
+
+  function preencherComDocumento({ briefing, ...resto }: ResultadoImportacao) {
+    setDados(briefing);
+    setImportacao(resto);
+    setRascunhoRestaurado(false);
+  }
+
   useEffect(() => {
     if (!carregouRef.current) return;
-    const ehVazio =
-      !dados.cliente.trim() &&
-      !dados.projetos.trim() &&
-      !dados.contexto.trim() &&
-      dados.frentes.every((f) => !f.titulo.trim());
     try {
       if (ehVazio) {
         window.localStorage.removeItem(CHAVE_RASCUNHO);
@@ -56,7 +65,7 @@ export default function NovaPropostaPage() {
     } catch {
       // localStorage indisponível (modo privado etc.) — segue sem rascunho.
     }
-  }, [dados]);
+  }, [dados, ehVazio]);
 
   function descartarRascunho() {
     try {
@@ -66,6 +75,7 @@ export default function NovaPropostaPage() {
     }
     setDados(briefingVazio);
     setRascunhoRestaurado(false);
+    setImportacao(null);
   }
 
   async function enviar() {
@@ -106,6 +116,24 @@ export default function NovaPropostaPage() {
         Preencha os números e itens que você já decidiu. A IA escreve apenas o resumo executivo,
         as introduções de cada frente, os próximos passos e o fechamento.
       </p>
+
+      <ImportarDocumento temConteudo={!ehVazio} onPreencher={preencherComDocumento} />
+
+      {importacao && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+          <Flag titulo={`Preenchido pela IA a partir de ${importacao.origem}`}>
+            Confira cada valor, prazo e item antes de gerar a proposta: a IA copia do documento,
+            mas pode ler errado. O que não estava no documento ficou em branco.
+          </Flag>
+          {importacao.moeda !== "BRL" && (
+            <Flag titulo={`Documento em ${importacao.moeda}`}>
+              O Lastro apresenta os valores em reais (R$). Os números foram copiados como estão,
+              sem conversão: um valor de {importacao.moeda} 3.000 aparece na proposta como R$ 3.000.
+              Converta os valores antes de gerar.
+            </Flag>
+          )}
+        </div>
+      )}
 
       {rascunhoRestaurado && (
         <div

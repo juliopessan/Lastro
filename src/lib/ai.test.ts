@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarConteudo } from "./ai";
+import { normalizarBriefingExtraido, normalizarConteudo, paraNumero } from "./ai";
 import { briefingFake } from "./test-fixtures";
 
 const briefing = briefingFake({
@@ -75,5 +75,94 @@ describe("normalizarConteudo", () => {
   it("remove passos vazios", () => {
     const r = normalizarConteudo({ ...respostaBoa, proximosPassos: ["Passo", "  "] }, briefing);
     expect(r.proximosPassos).toEqual(["Passo"]);
+  });
+});
+
+describe("paraNumero", () => {
+  it.each([
+    ["3.000,00", 3000],
+    ["US$ 3.000", 3000],
+    ["1.250,50", 1250.5],
+    ["1,250.50", 1250.5],
+    ["3,000", 3000],
+    ["12,5", 12.5],
+    ["1250.5", 1250.5],
+    ["R$ 14.000", 14000],
+    ["1.000.000", 1000000],
+    [900, 900],
+  ] as const)("%s -> %s", (entrada, esperado) => {
+    expect(paraNumero(entrada)).toBe(esperado);
+  });
+
+  it("texto sem número vira NaN, que o schema troca por 0", () => {
+    expect(paraNumero("a combinar")).toBeNaN();
+  });
+});
+
+describe("normalizarBriefingExtraido", () => {
+  const extraido = {
+    moeda: "usd",
+    briefing: {
+      cliente: "[Nome da empresa]",
+      projetos: "Loja Virtual WooCommerce",
+      contexto: "Loja responsiva — WordPress e WooCommerce.",
+      frentes: [
+        { titulo: "Módulo 01 — Storefront", itens: [{ descricao: "Homepage" }, { descricao: "" }] },
+        { titulo: "", itens: [] },
+      ],
+      itensInvestimento: [
+        { modulo: "Discovery", descricao: "Arquitetura", valor: "US$ 300", categoriaMercado: "ecommerce-mvp" },
+        { modulo: "Suporte", descricao: "x", valor: 100, categoriaMercado: "suporte-manutencao" },
+        { modulo: "Inventado", descricao: "y", valor: 50, categoriaMercado: "nao-existe" },
+      ],
+      condicoesPagamento: "40% / 30% / 30%",
+      recorrencia: "nao e lista",
+      cronograma: [{ fase: "Semana 1", periodo: "5 dias", entregas: "Setup" }],
+      validadeDias: "15",
+    },
+  };
+
+  it("guarda a moeda do documento em ISO maiúsculo", () => {
+    expect(normalizarBriefingExtraido(extraido).moeda).toBe("USD");
+  });
+
+  it("descarta texto de modelo como [Nome da empresa]", () => {
+    expect(normalizarBriefingExtraido(extraido).briefing.cliente).toBe("");
+  });
+
+  it("converte valor escrito como texto e mantém o que já é número", () => {
+    const itens = normalizarBriefingExtraido(extraido).briefing.itensInvestimento;
+    expect(itens.map((i) => i.valor)).toEqual([300, 100, 50]);
+  });
+
+  it("só aceita categoria que existe e é da unidade certa", () => {
+    const itens = normalizarBriefingExtraido(extraido).briefing.itensInvestimento;
+    expect(itens[0].categoriaMercado).toBe("ecommerce-mvp");
+    expect(itens[1].categoriaMercado).toBeUndefined(); // suporte é mensal, não setup
+    expect(itens[2].categoriaMercado).toBeUndefined(); // não existe
+  });
+
+  it("tira travessão e descarta frente e item vazios", () => {
+    const b = normalizarBriefingExtraido(extraido).briefing;
+    expect(b.frentes).toEqual([{ titulo: "Módulo 01: Storefront", itens: [{ descricao: "Homepage" }] }]);
+    expect(b.contexto).toBe("Loja responsiva, WordPress e WooCommerce.");
+  });
+
+  it("campo no formato errado vira vazio em vez de quebrar", () => {
+    const b = normalizarBriefingExtraido(extraido).briefing;
+    expect(b.recorrencia).toEqual([]);
+    expect(b.validadeDias).toBe(15);
+  });
+
+  it("documento sem nada aproveitável ainda devolve um formulário completo", () => {
+    const b = normalizarBriefingExtraido({ moeda: "", briefing: {} }).briefing;
+    expect(b.frentes).toHaveLength(1);
+    expect(b.itensInvestimento).toHaveLength(1);
+    expect(b.cronograma).toHaveLength(1);
+    expect(b.validadeDias).toBe(15);
+  });
+
+  it("recusa resposta sem o objeto briefing", () => {
+    expect(() => normalizarBriefingExtraido({ moeda: "BRL" })).toThrow(/fora do formato/);
   });
 });

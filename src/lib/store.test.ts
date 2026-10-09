@@ -136,3 +136,62 @@ describe("assinatura com evidências", () => {
     expect(editada.versoes![0].gerado.notaFinal).toBe(p.gerado.notaFinal);
   });
 });
+
+describe("aberturas pelo cliente", () => {
+  const cliente = { ip: "179.118.177.188", navegador: "Safari" };
+  const t0 = Date.parse("2026-10-09T12:00:00.000Z");
+
+  it("a primeira abertura conta e vira nota no CRM", async () => {
+    const p = await novaProposta();
+    expect(await store.registrarVisualizacao(p.id, cliente, t0)).toBe("registrada");
+    const depois = await store.buscarProposta(p.id);
+    expect(depois?.totalVisualizacoes).toBe(1);
+    expect(depois?.notas?.map((n) => n.texto)).toContain("Cliente abriu a proposta pela primeira vez.");
+  });
+
+  it("recarregar dentro de 30 minutos não conta de novo; depois disso conta", async () => {
+    const p = await novaProposta();
+    await store.registrarVisualizacao(p.id, cliente, t0);
+    expect(await store.registrarVisualizacao(p.id, cliente, t0 + 10 * 60_000)).toBe("repetida");
+    expect(await store.registrarVisualizacao(p.id, cliente, t0 + 31 * 60_000)).toBe("registrada");
+    expect((await store.buscarProposta(p.id))?.totalVisualizacoes).toBe(2);
+  });
+
+  it("outra pessoa no mesmo minuto conta", async () => {
+    const p = await novaProposta();
+    await store.registrarVisualizacao(p.id, cliente, t0);
+    expect(await store.registrarVisualizacao(p.id, { ip: "200.1.1.1", navegador: "Chrome" }, t0 + 1000)).toBe("registrada");
+  });
+
+  it("só a primeira abertura gera nota", async () => {
+    const p = await novaProposta();
+    await store.registrarVisualizacao(p.id, cliente, t0);
+    await store.registrarVisualizacao(p.id, cliente, t0 + 3_600_000);
+    const notas = (await store.buscarProposta(p.id))?.notas?.filter((n) => n.texto.includes("abriu"));
+    expect(notas).toHaveLength(1);
+  });
+
+  it("guarda no máximo 100 aberturas, mas o total segue contando", async () => {
+    const p = await novaProposta();
+    for (let i = 0; i < 105; i++) await store.registrarVisualizacao(p.id, { ip: `10.0.0.${i}` }, t0 + i);
+    const depois = await store.buscarProposta(p.id);
+    expect(depois?.visualizacoes).toHaveLength(100);
+    expect(depois?.totalVisualizacoes).toBe(105);
+  });
+
+  it("abrir não reemite nem muda o hash do documento", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    const antes = hashDocumentoAtual(p);
+    await store.registrarVisualizacao(p.id, cliente, t0);
+    const depois = await store.buscarProposta(p.id);
+    expect(depois?.atualizadoEm).toBeUndefined();
+    expect(hashDocumentoAtual(depois!)).toBe(antes);
+  });
+
+  it("proposta na lixeira não registra", async () => {
+    const p = await novaProposta();
+    await store.moverParaLixeira(p.id);
+    expect(await store.registrarVisualizacao(p.id, cliente, t0)).toBe("nao-encontrada");
+  });
+});

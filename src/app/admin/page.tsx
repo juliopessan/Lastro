@@ -32,6 +32,8 @@ export default async function AdminPage() {
     emitidoEm: dataEmissao(p).toISOString(),
     valor: totalInvestimento(p),
     moeda: moedaDe(p.briefing),
+    aberturas: p.totalVisualizacoes,
+    ultimaAbertura: p.visualizacoes?.at(-1)?.em,
     custoUsd: p.geracao.custoUsd,
     status: statusEfetivo(p),
     vencida: propostaVencida(p),

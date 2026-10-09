@@ -18,6 +18,8 @@ export default async function CrmPage() {
     cliente: p.briefing.cliente,
     valor: p.briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0),
     moeda: moedaDe(p.briefing),
+    aberturas: p.totalVisualizacoes,
+    ultimaAbertura: p.visualizacoes?.at(-1)?.em,
     status: statusEfetivo(p),
     proximoContato: p.proximoContato ?? null,
     notas: p.notas ?? [],

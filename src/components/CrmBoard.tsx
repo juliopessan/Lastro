@@ -5,6 +5,7 @@ import Link from "next/link";
 import { STATUS_LABEL, STATUS_ORDEM, contatoAtrasado } from "@/lib/crm";
 import { StatusProposta, NotaCrm, Contato } from "@/lib/types";
 import { formatarMoeda, Moeda } from "@/lib/moeda";
+import { resumoAberturas } from "@/lib/tempo";
 
 export type CrmCard = {
   id: string;
@@ -18,6 +19,8 @@ export type CrmCard = {
   assinada: boolean;
   contato?: Contato;
   vencida: boolean;
+  aberturas?: number;
+  ultimaAbertura?: string;
 };
 
 async function patchCrm(id: string, body: object) {
@@ -132,6 +135,9 @@ function Card({
         <Link href={`/propostas/${card.id}`} style={{ flex: 1 }}>
           <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{card.titulo}</p>
           <p style={{ color: "var(--ink-faint)", fontSize: 12, marginTop: 4 }}>{card.cliente}</p>
+          <p style={{ color: "var(--ink-faint)", fontSize: 11, marginTop: 2, fontFamily: "var(--mono)" }}>
+            {resumoAberturas(card.aberturas, card.ultimaAbertura)}
+          </p>
           {card.vencida && (
             <p style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--clay-deep)", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               validade vencida

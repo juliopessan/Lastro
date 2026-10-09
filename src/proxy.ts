@@ -7,7 +7,8 @@ import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const ehApiPublica = pathname.endsWith("/assinar");
+  // Rotas que o cliente usa sem conta: assinar e registrar que abriu a página.
+  const ehApiPublica = pathname.endsWith("/assinar") || pathname.endsWith("/visualizacao");
   const precisaAuth =
     (pathname.startsWith("/admin") || pathname.startsWith("/api/proposals")) &&
     !ehApiPublica;

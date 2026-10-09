@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatUsd } from "@/lib/pricing";
 import { formatarMoeda, Moeda } from "@/lib/moeda";
+import { resumoAberturas } from "@/lib/tempo";
 import { STATUS_LABEL, STATUS_ORDEM } from "@/lib/crm";
 import { StatusProposta } from "@/lib/types";
 
@@ -17,6 +18,8 @@ export type PropostaResumo = {
   valor: number;
   moeda: Moeda;
   custoUsd: number;
+  aberturas?: number;
+  ultimaAbertura?: string;
   status: StatusProposta;
   vencida: boolean;
 };
@@ -134,7 +137,8 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
               <p style={{ fontWeight: 700, fontSize: 16 }}>{p.titulo}</p>
               <p style={{ color: "var(--ink-faint)", fontSize: 13, marginTop: 4 }}>
                 {p.cliente} · {new Date(p.emitidoEm).toLocaleDateString("pt-BR")} ·{" "}
-                <span style={{ color: CORES_STATUS[p.status] }}>{STATUS_LABEL[p.status]}</span>
+                <span style={{ color: CORES_STATUS[p.status] }}>{STATUS_LABEL[p.status]}</span> ·{" "}
+                {resumoAberturas(p.aberturas, p.ultimaAbertura)}
                 {p.vencida && (
                   <>
                     {" "}

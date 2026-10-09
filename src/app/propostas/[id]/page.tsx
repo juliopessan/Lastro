@@ -7,6 +7,8 @@ import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/L
 import { PrintButton } from "@/components/PrintButton";
 import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
+import { RegistrarVisualizacao } from "@/components/RegistrarVisualizacao";
+import { resumoAberturas } from "@/lib/tempo";
 import { formatarMoeda, moedaDe } from "@/lib/moeda";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { bloqueioAssinatura, dataEmissao, dataValidade } from "@/lib/crm";
@@ -119,8 +121,13 @@ export default async function PropostaPage({
         </div>
       </div>
 
+      {!ehAdmin && <RegistrarVisualizacao propostaId={proposta.id} />}
+
       {ehAdmin && (
         <div className="no-print" style={{ marginBottom: 40 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 16 }}>
+            Cliente: {resumoAberturas(proposta.totalVisualizacoes, proposta.visualizacoes?.at(-1)?.em)}
+          </p>
           <EmailSendForm propostaId={proposta.id} contato={proposta.contato} />
         </div>
       )}

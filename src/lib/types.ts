@@ -94,6 +94,8 @@ export type Assinatura = {
   documento?: DocumentoAssinado;
 };
 
+export type Visualizacao = { em: string; ip?: string; navegador?: string };
+
 /** Uma versão anterior do documento, guardada a cada reemissão. */
 export type VersaoDocumento = {
   registradaEm: string;
@@ -144,6 +146,10 @@ export type Proposal = {
   assinaturasAnteriores?: Assinatura[];
   /** Versões anteriores do documento, uma por edição salva. */
   versoes?: VersaoDocumento[];
+  /** Aberturas da página pelo cliente (as mais recentes; ver lib/visualizacao). */
+  visualizacoes?: Visualizacao[];
+  /** Total de aberturas, inclusive as que já saíram da lista acima. */
+  totalVisualizacoes?: number;
   status?: StatusProposta;
   proximoContato?: string | null;
   notas?: NotaCrm[];

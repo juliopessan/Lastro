@@ -4,6 +4,7 @@ import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, P
 import { congelarDocumento, hashDocumento, hashDocumentoAtual } from "./assinatura";
 import { hashBriefing } from "./briefing-hash";
 import { dataEmissao } from "./crm";
+import { JANELA_MESMA_VISITA_MS, MAX_VISUALIZACOES_GUARDADAS } from "./visualizacao";
 
 type Row = {
   id: string;
@@ -283,4 +284,42 @@ export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposa
 
   salvarLinha(db, atualizada);
   return atualizada;
+}
+
+/**
+ * Registra uma abertura da página pelo cliente. A mesma pessoa (mesmo IP e
+ * navegador) recarregando dentro de 30 minutos conta uma vez só. A primeira
+ * abertura vira nota no CRM: é o sinal de que a proposta chegou.
+ *
+ * Não mexe em atualizadoEm nem no documento: abrir não é reemitir, e o hash do
+ * que foi ou será assinado não muda.
+ */
+export async function registrarVisualizacao(
+  id: string,
+  quem: { ip?: string; navegador?: string },
+  agora: number = Date.now()
+): Promise<"registrada" | "repetida" | "nao-encontrada"> {
+  const db = getDb();
+  const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as Row | undefined;
+  if (!row) return "nao-encontrada";
+  const proposta = rowParaProposta(row);
+  if (proposta.excluidoEm) return "nao-encontrada";
+
+  const lista = proposta.visualizacoes ?? [];
+  const mesmaPessoa = [...lista].reverse().find((v) => v.ip === quem.ip && v.navegador === quem.navegador);
+  if (mesmaPessoa && agora - Date.parse(mesmaPessoa.em) < JANELA_MESMA_VISITA_MS) return "repetida";
+
+  const em = new Date(agora).toISOString();
+  const total = (proposta.totalVisualizacoes ?? 0) + 1;
+  const atualizada: Proposal = {
+    ...proposta,
+    visualizacoes: [...lista, { em, ...quem }].slice(-MAX_VISUALIZACOES_GUARDADAS),
+    totalVisualizacoes: total,
+    notas:
+      total === 1
+        ? [...(proposta.notas || []), { texto: "Cliente abriu a proposta pela primeira vez.", criadoEm: em }]
+        : proposta.notas,
+  };
+  salvarLinha(db, atualizada);
+  return "registrada";
 }

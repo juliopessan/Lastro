@@ -10,6 +10,28 @@ function resendClient(): Resend {
   return new Resend(apiKey);
 }
 
+// Todo texto que entra no HTML do e-mail passa por aqui. O nome de quem
+// assina vem da rota pública, então sem escape um "nome" como
+// <a href=...>Ver contrato</a> virava link clicável no aviso que chega ao admin.
+export function escapeHtml(texto: string): string {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Nome do anexo: o título da proposta pode ter barra, dois-pontos etc., que
+// alguns clientes de e-mail e sistemas de arquivo recusam.
+export function nomeArquivoPdf(titulo: string): string {
+  const limpo = titulo
+    .replace(/\s*[\\/:*?"<>|]+\s*/g, " - ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s-]+|[\s-]+$/g, "");
+  return `${limpo || "proposta"}.pdf`;
+}
+
 // Mesmo layout de emails/proposta-template.html (o template que fica no
 // editor HTML do Resend) — só trocando {{chaves}} por variáveis reais.
 // Tudo inline, em tabela: é o que sobrevive a clientes de e-mail antigos
@@ -20,7 +42,11 @@ function emailHtml(params: {
   link: string;
   mensagem?: string;
 }) {
-  const { cliente, tituloProposta, link, mensagem } = params;
+  const cliente = escapeHtml(params.cliente);
+  const tituloProposta = escapeHtml(params.tituloProposta);
+  const link = escapeHtml(params.link);
+  // A mensagem é texto livre: escapa e preserva as quebras de linha.
+  const mensagem = params.mensagem ? escapeHtml(params.mensagem).replace(/\r?\n/g, "<br />") : "";
   return `<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -144,7 +170,7 @@ export async function enviarPropostaPorEmail(params: {
     html: emailHtml({ cliente, tituloProposta, link, mensagem }),
     attachments: [
       {
-        filename: `${tituloProposta}.pdf`,
+        filename: nomeArquivoPdf(tituloProposta),
         content: pdf,
       },
     ],
@@ -167,7 +193,11 @@ export async function avisarAssinatura(params: {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) return; // notificação é opcional — sem e-mail configurado, não faz nada
 
-  const { cliente, tituloProposta, nomeSignatario, linkAdmin } = params;
+  const { tituloProposta } = params;
+  const cliente = escapeHtml(params.cliente);
+  const titulo = escapeHtml(params.tituloProposta);
+  const nomeSignatario = escapeHtml(params.nomeSignatario);
+  const linkAdmin = escapeHtml(params.linkAdmin);
   const resend = resendClient();
 
   const html = `
@@ -176,7 +206,7 @@ export async function avisarAssinatura(params: {
         ✓ Proposta assinada
       </p>
       <p style="font-size:15px; line-height:1.6;">
-        <strong>${nomeSignatario}</strong> (${cliente}) acabou de assinar <strong>${tituloProposta}</strong>.
+        <strong>${nomeSignatario}</strong> (${cliente}) acabou de assinar <strong>${titulo}</strong>.
       </p>
       <p style="margin-top:20px;">
         <a href="${linkAdmin}" style="color:#11110f;">Ver no painel →</a>

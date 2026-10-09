@@ -101,6 +101,11 @@ export type Proposal = {
    * Ausente enquanto a proposta nunca foi editada.
    */
   atualizadoEm?: string;
+  /**
+   * Quando foi para a lixeira. Proposta com este campo some do painel, do CRM
+   * e do link público, mas continua no banco até alguém excluir de vez.
+   */
+  excluidoEm?: string;
   briefing: BriefingInput;
   gerado: ConteudoGerado;
   geracao: Geracao;

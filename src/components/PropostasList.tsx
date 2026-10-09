@@ -59,14 +59,14 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
   }
 
   async function excluir(id: string) {
-    if (!confirm("Excluir esta proposta? Não pode ser desfeito.")) return;
+    if (!confirm("Mover esta proposta para a lixeira? Ela sai do painel e o link do cliente para de funcionar, mas dá para restaurar depois.")) return;
     setExcluindo(id);
     try {
       const res = await fetch(`/api/proposals/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Falha ao excluir.");
+      if (!res.ok) throw new Error("Falha ao mover para a lixeira.");
       router.refresh();
     } catch {
-      alert("Não foi possível excluir a proposta.");
+      alert("Não foi possível mover a proposta para a lixeira.");
     } finally {
       setExcluindo(null);
     }
@@ -166,7 +166,7 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
                 onClick={() => excluir(p.id)}
                 disabled={excluindo === p.id}
               >
-                {excluindo === p.id ? "excluindo…" : "excluir"}
+                {excluindo === p.id ? "movendo…" : "excluir"}
               </button>
             </div>
           </div>

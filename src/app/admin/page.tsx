@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { listarPropostas } from "@/lib/store";
+import { listarLixeira, listarPropostas } from "@/lib/store";
 import { Eyebrow, LedgerPanel, Fig, Voice } from "@/components/Ledger";
 import { LogoutButton } from "@/components/LogoutButton";
 import { PropostasList, PropostaResumo } from "@/components/PropostasList";
@@ -16,6 +16,7 @@ function totalInvestimento(p: Awaited<ReturnType<typeof listarPropostas>>[number
 
 export default async function AdminPage() {
   const propostas = await listarPropostas();
+  const naLixeira = (await listarLixeira()).length;
   const custoTotal = propostas.reduce((s, p) => s + p.geracao.custoUsd, 0);
   const valorTotalGerado = propostas.reduce((s, p) => s + totalInvestimento(p), 0);
   const assinadas = propostas.filter((p) => p.assinatura).length;
@@ -60,6 +61,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/mercado" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
             Preços de mercado
+          </Link>
+          <Link href="/admin/lixeira" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+            Lixeira{naLixeira > 0 ? ` (${naLixeira})` : ""}
           </Link>
           <Link href="/admin/novo" className="btn">
             + Nova proposta

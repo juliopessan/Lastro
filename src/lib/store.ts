@@ -39,23 +39,43 @@ export async function salvarProposta(
   return completa;
 }
 
-export async function listarPropostas(): Promise<Proposal[]> {
+function todasAsPropostas(): Proposal[] {
   const db = getDb();
-  const rows = db.prepare(`SELECT * FROM propostas`).all() as Row[];
+  return (db.prepare(`SELECT * FROM propostas`).all() as Row[]).map(rowParaProposta);
+}
+
+export async function listarPropostas(): Promise<Proposal[]> {
   // Ordena pela data de emissão, não pela de criação: é essa que o painel
   // mostra, e uma proposta reeditada hoje precisa subir pro topo em vez de
   // ficar enterrada na posição de quando nasceu.
-  return rows
-    .map(rowParaProposta)
+  return todasAsPropostas()
+    .filter((p) => !p.excluidoEm)
     .sort((a, b) => dataEmissao(b).getTime() - dataEmissao(a).getTime());
 }
 
-export async function buscarProposta(id: string): Promise<Proposal | null> {
+export async function listarLixeira(): Promise<Proposal[]> {
+  return todasAsPropostas()
+    .filter((p) => p.excluidoEm)
+    .sort((a, b) => new Date(b.excluidoEm!).getTime() - new Date(a.excluidoEm!).getTime());
+}
+
+/**
+ * Proposta na lixeira conta como inexistente para todo o resto do sistema:
+ * página pública, assinatura, edição, CRM, PDF, e-mail. Só a própria lixeira
+ * pede incluirLixeira para restaurar ou excluir de vez.
+ */
+export async function buscarProposta(
+  id: string,
+  opcoes: { incluirLixeira?: boolean } = {}
+): Promise<Proposal | null> {
   const db = getDb();
   const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
     | Row
     | undefined;
-  return row ? rowParaProposta(row) : null;
+  if (!row) return null;
+  const proposta = rowParaProposta(row);
+  if (proposta.excluidoEm && !opcoes.incluirLixeira) return null;
+  return proposta;
 }
 
 export async function duplicarProposta(id: string): Promise<Proposal | null> {
@@ -73,9 +93,39 @@ export async function duplicarProposta(id: string): Promise<Proposal | null> {
   });
 }
 
-export async function excluirProposta(id: string): Promise<void> {
-  const db = getDb();
-  db.prepare(`DELETE FROM propostas WHERE id = ?`).run(id);
+function comNota(p: Proposal, texto: string): Proposal {
+  const nota: NotaCrm = { texto, criadoEm: new Date().toISOString() };
+  return { ...p, notas: [...(p.notas || []), nota] };
+}
+
+// "Excluir" no painel manda para a lixeira. Antes era um DELETE direto, com um
+// clique e sem volta — a explicação mais provável para uma proposta ter
+// sumido do banco sem rastro.
+export async function moverParaLixeira(id: string): Promise<Proposal | null> {
+  const proposta = await buscarProposta(id);
+  if (!proposta) return null;
+  const atualizada = comNota({ ...proposta, excluidoEm: new Date().toISOString() }, "Movida para a lixeira.");
+  salvarLinha(getDb(), atualizada);
+  return atualizada;
+}
+
+export async function restaurarDaLixeira(id: string): Promise<Proposal | null> {
+  const proposta = await buscarProposta(id, { incluirLixeira: true });
+  if (!proposta?.excluidoEm) return null;
+  const { excluidoEm: _removido, ...resto } = proposta;
+  void _removido;
+  const atualizada = comNota(resto, "Restaurada da lixeira.");
+  salvarLinha(getDb(), atualizada);
+  return atualizada;
+}
+
+/** Só apaga o que já está na lixeira: são sempre dois passos para perder dado. */
+export async function excluirDefinitivo(id: string): Promise<"excluida" | "nao-encontrada" | "fora-da-lixeira"> {
+  const proposta = await buscarProposta(id, { incluirLixeira: true });
+  if (!proposta) return "nao-encontrada";
+  if (!proposta.excluidoEm) return "fora-da-lixeira";
+  getDb().prepare(`DELETE FROM propostas WHERE id = ?`).run(id);
+  return "excluida";
 }
 
 export async function assinarProposta(

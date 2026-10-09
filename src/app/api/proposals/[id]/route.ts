@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { atualizarProposta, buscarProposta, excluirProposta } from "@/lib/store";
+import { atualizarProposta, buscarProposta, moverParaLixeira } from "@/lib/store";
 import { briefingSchema, geracaoSchema, geradoSchema } from "@/lib/schemas";
 
 export async function GET(
@@ -63,6 +63,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await excluirProposta(id);
+  // Vai para a lixeira, não some: restaurar ou excluir de vez fica em
+  // /api/proposals/[id]/restaurar e /api/proposals/[id]/definitivo.
+  const movida = await moverParaLixeira(id);
+  if (!movida) {
+    return NextResponse.json({ erro: "Proposta não encontrada." }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }

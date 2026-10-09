@@ -12,7 +12,10 @@ export async function gerarPdfProposta(url: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     executablePath,
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    // --disable-dev-shm-usage: no Docker, /dev/shm tem 64 MB por padrão, e o
+    // Chromium usa essa área para renderizar. Uma proposta de várias páginas
+    // pode estourar e derrubar o processo; com a flag ele usa /tmp.
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
 
   try {

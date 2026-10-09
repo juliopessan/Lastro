@@ -50,8 +50,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 # Usuário sem privilégio: se algo no processo for comprometido, não é root.
-RUN groupadd --system lastro && useradd --system --gid lastro --no-create-home lastro \
+# Precisa de pasta pessoal gravável: o Chromium grava ali o perfil e o banco
+# do crashpad, e sem ela nem abre ("chrome_crashpad_handler: --database is
+# required"). O teste de fumaça do CI pegou isso.
+RUN groupadd --system lastro \
+  && useradd --system --gid lastro --create-home --home-dir /home/lastro lastro \
   && mkdir -p /data && chown -R lastro:lastro /data /app
+ENV HOME=/home/lastro
 USER lastro
 VOLUME ["/data"]
 

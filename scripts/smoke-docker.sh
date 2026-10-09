@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Sobe a imagem do Lastro e confere o caminho de produção de ponta a ponta:
 # healthcheck, login, SQLite nativo gravando no volume, página pública da
-# proposta e o Chrome imprimindo o PDF pelo loopback — que só funciona com o
-# HOSTNAME=0.0.0.0 do Dockerfile. Roda no CI; localmente, precisa de Docker.
+# proposta e o PDF gerado pela rota real do app, com o Chrome do contêiner
+# indo pelo loopback, que só funciona com o HOSTNAME=0.0.0.0 do Dockerfile.
+# Roda no CI; localmente, precisa de Docker.
 #
 #   docker build -t lastro:ci . && scripts/smoke-docker.sh lastro:ci
 set -euo pipefail
@@ -56,18 +57,14 @@ echo "== página pública da proposta"
 codigo=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/propostas/smoke)
 [ "$codigo" = "200" ] || { echo "/propostas/smoke devolveu $codigo"; exit 1; }
 
-echo "== Chrome imprime o PDF pelo loopback, de dentro do contêiner"
-docker exec "$NOME" node -e '
-  const puppeteer = require("puppeteer-core");
-  (async () => {
-    const b = await puppeteer.launch({ executablePath: process.env.CHROME_EXECUTABLE_PATH, headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
-    const p = await b.newPage();
-    await p.goto("http://127.0.0.1:" + process.env.PORT + "/propostas/smoke", { waitUntil: "networkidle0" });
-    const pdf = await p.pdf({ printBackground: true, preferCSSPageSize: true });
-    await b.close();
-    if (pdf.length < 10000) throw new Error("PDF pequeno demais: " + pdf.length + " bytes");
-    console.log("   PDF com " + pdf.length + " bytes");
-  })().catch((e) => { console.error(e); process.exit(1); });
-'
+echo "== PDF pela rota real do app (lib/pdf.ts + endereço interno)"
+codigo=$(curl -s -b /tmp/smoke-jar -o /tmp/smoke.pdf -w '%{http_code}' http://127.0.0.1:3000/api/proposals/smoke/pdf)
+if [ "$codigo" != "200" ]; then
+  echo "rota do PDF devolveu $codigo"; cat /tmp/smoke.pdf; echo; docker logs "$NOME" | tail -30; exit 1
+fi
+[ "$(head -c 4 /tmp/smoke.pdf)" = "%PDF" ] || { echo "resposta não é PDF"; exit 1; }
+tamanho=$(wc -c < /tmp/smoke.pdf | tr -d ' ')
+[ "$tamanho" -gt 10000 ] || { echo "PDF pequeno demais: $tamanho bytes"; exit 1; }
+echo "   PDF com $tamanho bytes"
 
 echo "OK: imagem pronta para produção"

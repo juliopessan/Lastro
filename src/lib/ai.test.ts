@@ -162,6 +162,20 @@ describe("normalizarBriefingExtraido", () => {
     expect(b.validadeDias).toBe(15);
   });
 
+  it("categoria repetida em várias linhas é etapa do mesmo projeto: sai de todas", () => {
+    const b = normalizarBriefingExtraido({
+      moeda: "USD",
+      briefing: {
+        itensInvestimento: [
+          { modulo: "Discovery", valor: 300, categoriaMercado: "ecommerce-mvp" },
+          { modulo: "Design", valor: 900, categoriaMercado: "ecommerce-mvp" },
+          { modulo: "Site institucional", valor: 9000, categoriaMercado: "website-b2b" },
+        ],
+      },
+    }).briefing;
+    expect(b.itensInvestimento.map((i) => i.categoriaMercado)).toEqual([undefined, undefined, "website-b2b"]);
+  });
+
   it("recusa resposta sem o objeto briefing", () => {
     expect(() => normalizarBriefingExtraido({ moeda: "BRL" })).toThrow(/fora do formato/);
   });

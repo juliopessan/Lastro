@@ -165,11 +165,12 @@ Regras estritas:
 - frentes: os grandes blocos do escopo (módulos, fases de entrega ou áreas), cada um com itens curtos e concretos do que será entregue.
 - itensInvestimento: cada linha de preço do projeto (módulo, descrição curta, valor). Não inclua a linha de total.
 - recorrencia: só valores mensais recorrentes (suporte, mensalidade). Sem isso, lista vazia.
-- cronograma: as fases com período e entregas.
+- projetos: nome curto do projeto ou das marcas envolvidas, até 8 palavras (ex.: "Loja Virtual WooCommerce"). A descrição vai no contexto.
+- cronograma: as fases com período e entregas. "fase" é o nome da fase sem o período (ex.: "Discovery e configuração"); "periodo" é quando (ex.: "Semana 1").
 - condicoesPagamento: as condições de pagamento como o documento descreve, numa frase.
 - validadeDias: validade da proposta em dias, se o documento disser; senão 15.
 - contexto: 2 a 5 frases com objetivo, premissas e exclusões importantes, só com o que o documento diz.
-- categoriaMercado: use um id da lista abaixo apenas quando o item se encaixar claramente; senão omita o campo.
+- categoriaMercado: a categoria é a faixa de preço de mercado de UM projeto inteiro. Use um id da lista só quando uma linha de investimento for, sozinha, um projeto inteiro daquela categoria. Quando as linhas forem etapas do mesmo projeto (discovery, design, testes...), omita o campo em todas.
 - Português do Brasil. Não use travessão (—).
 
 Categorias de mercado (id: categoria, unidade):
@@ -246,6 +247,24 @@ function categoriaValida(id: string | undefined, unidade: "projeto" | "mensal"):
 
 export type BriefingExtraido = { briefing: BriefingInput; moeda: string };
 
+/**
+ * A categoria de mercado é a faixa de preço de um projeto inteiro, e o
+ * comparativo soma a faixa por linha. Se a mesma categoria aparece em mais de
+ * uma linha, são etapas de um projeto só, e somar cinco vezes a faixa de
+ * "E-commerce" contra um projeto de US$ 3.000 seria um comparativo falso.
+ * Categoria repetida sai de todas as linhas.
+ */
+function semCategoriaRepetida<T extends { categoriaMercado?: string }>(itens: T[]): T[] {
+  const contagem = new Map<string, number>();
+  for (const i of itens) if (i.categoriaMercado) contagem.set(i.categoriaMercado, (contagem.get(i.categoriaMercado) ?? 0) + 1);
+  return itens.map((i) => {
+    if (!i.categoriaMercado || (contagem.get(i.categoriaMercado) ?? 0) < 2) return i;
+    const { categoriaMercado: _repetida, ...resto } = i;
+    void _repetida;
+    return resto as T;
+  });
+}
+
 export function normalizarBriefingExtraido(bruto: unknown): BriefingExtraido {
   const r = extracaoSchema.safeParse(bruto);
   if (!r.success) {
@@ -266,23 +285,23 @@ export function normalizarBriefingExtraido(bruto: unknown): BriefingExtraido {
     projetos: limpo(b.projetos),
     contexto: limpo(b.contexto),
     frentes: frentes.length ? frentes : [{ titulo: "", itens: [{ descricao: "" }] }],
-    itensInvestimento: b.itensInvestimento
+    itensInvestimento: semCategoriaRepetida(b.itensInvestimento
       .map((i) => ({
         modulo: limpo(i.modulo, ": "),
         descricao: limpo(i.descricao),
         valor: i.valor,
         ...(categoriaValida(i.categoriaMercado, "projeto") ? { categoriaMercado: categoriaValida(i.categoriaMercado, "projeto") } : {}),
       }))
-      .filter((i) => i.modulo || i.descricao || i.valor),
+      .filter((i) => i.modulo || i.descricao || i.valor)),
     condicoesPagamento: limpo(b.condicoesPagamento),
-    recorrencia: b.recorrencia
+    recorrencia: semCategoriaRepetida(b.recorrencia
       .map((i) => ({
         servico: limpo(i.servico, ": "),
         descricao: limpo(i.descricao),
         valorMensal: i.valorMensal,
         ...(categoriaValida(i.categoriaMercado, "mensal") ? { categoriaMercado: categoriaValida(i.categoriaMercado, "mensal") } : {}),
       }))
-      .filter((i) => i.servico || i.valorMensal),
+      .filter((i) => i.servico || i.valorMensal)),
     cronograma: b.cronograma
       .map((f) => ({ fase: limpo(f.fase, ": "), periodo: limpo(f.periodo), entregas: limpo(f.entregas) }))
       .filter((f) => f.fase || f.entregas),

@@ -2,8 +2,14 @@
 # Funciona em qualquer host com disco persistente: Railway, Fly.io, Render,
 # VPS com Docker. Monte um volume em /data e aponte DATA_DIR pra ele.
 
+# Imagem base oficial do Node, puxada do espelho público da AWS em vez do
+# Docker Hub: é a mesma imagem, mas sem o limite de downloads anônimos que
+# derrubou o build do CI ("429 Too Many Requests") e que também pegaria os
+# deploys da VPS.
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim
+
 # ---------- build ----------
-FROM node:22-bookworm-slim AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
 # better-sqlite3 compila binário nativo no install
@@ -27,7 +33,7 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
 # ---------- runtime ----------
-FROM node:22-bookworm-slim AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
 # Chromium + fontes: sem isso o puppeteer-core não gera o PDF.

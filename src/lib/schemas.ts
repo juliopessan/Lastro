@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { STATUS_ORDEM } from "./crm";
+import { StatusProposta } from "./types";
 
 // Validação de runtime dos payloads que chegam nas rotas de proposta.
 // Fica aqui, e não dentro de um route.ts, porque mais de uma rota valida o
@@ -51,6 +53,31 @@ export const geracaoSchema = z.object({
   custoUsd: z.number(),
   duracaoMs: z.number(),
   briefingHash: z.string().optional(),
+});
+
+// PATCH do CRM. Rota só do admin, mas validar barra lixo no banco: chave
+// inventada dentro do contato, data em formato que o painel não entende, nota
+// de megabytes.
+const textoCurto = (max: number, msg: string) => z.string().trim().max(max, msg).nullable().optional();
+
+export const crmPatchSchema = z.object({
+  status: z
+    .enum(STATUS_ORDEM as [StatusProposta, ...StatusProposta[]], { error: "Status inválido." })
+    .optional(),
+  // O input type="date" manda AAAA-MM-DD; null limpa o lembrete.
+  proximoContato: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.")
+    .nullable()
+    .optional(),
+  nota: z.string().trim().max(2000, "Nota muito longa.").optional(),
+  contato: z
+    .object({
+      nome: textoCurto(120, "Nome muito longo."),
+      email: z.email("E-mail inválido.").max(200).nullable().optional(),
+      telefone: textoCurto(40, "Telefone muito longo."),
+    })
+    .optional(),
 });
 
 /**

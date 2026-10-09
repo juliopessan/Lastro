@@ -59,7 +59,10 @@ function Card({
     };
     onChange(card.id, { contato });
     try {
-      await patchCrm(card.id, { contato });
+      // Campo apagado vai como null: omitido, o servidor manteria o valor antigo.
+      await patchCrm(card.id, {
+        contato: { nome: contato.nome ?? null, email: contato.email ?? null, telefone: contato.telefone ?? null },
+      });
     } catch {
       alert("Não foi possível salvar o contato.");
     }

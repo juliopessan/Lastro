@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atualizarCrm, buscarProposta } from "@/lib/store";
-import { STATUS_ORDEM } from "@/lib/crm";
-import { Contato, StatusProposta } from "@/lib/types";
+import { crmPatchSchema } from "@/lib/schemas";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,24 +12,15 @@ export async function PATCH(
     return NextResponse.json({ erro: "Proposta não encontrada." }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { status, proximoContato, nota, contato } = body as {
-    status?: string;
-    proximoContato?: string | null;
-    nota?: string;
-    contato?: Contato;
-  };
-
-  if (status && !STATUS_ORDEM.includes(status as StatusProposta)) {
-    return NextResponse.json({ erro: "Status inválido." }, { status: 400 });
+  const body = await req.json().catch(() => null);
+  if (body === null || typeof body !== "object") {
+    return NextResponse.json({ erro: "Corpo da requisição inválido." }, { status: 400 });
+  }
+  const dados = crmPatchSchema.safeParse(body);
+  if (!dados.success) {
+    return NextResponse.json({ erro: dados.error.issues[0].message }, { status: 400 });
   }
 
-  const atualizada = await atualizarCrm(id, {
-    status: status as StatusProposta | undefined,
-    proximoContato,
-    nota,
-    contato,
-  });
-
+  const atualizada = await atualizarCrm(id, dados.data);
   return NextResponse.json(atualizada);
 }

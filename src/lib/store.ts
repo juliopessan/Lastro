@@ -159,7 +159,9 @@ export type PatchCrm = {
   status?: StatusProposta;
   proximoContato?: string | null;
   nota?: string;
-  contato?: Contato;
+  // null apaga o campo. Omitido mantém o que já estava — é o que o envio por
+  // e-mail usa para gravar só o e-mail sem perder o telefone.
+  contato?: { [K in keyof Contato]?: string | null };
 };
 
 export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposal | null> {
@@ -174,7 +176,9 @@ export async function atualizarCrm(id: string, patch: PatchCrm): Promise<Proposa
   if (patch.status) atualizada.status = patch.status;
   if (patch.proximoContato !== undefined) atualizada.proximoContato = patch.proximoContato;
   if (patch.contato) {
-    atualizada.contato = { ...proposta.contato, ...patch.contato };
+    const mesclado: Record<string, string | null | undefined> = { ...proposta.contato, ...patch.contato };
+    for (const k of Object.keys(mesclado)) if (mesclado[k] == null) delete mesclado[k];
+    atualizada.contato = mesclado as Contato;
   }
   if (patch.nota?.trim()) {
     const nota: NotaCrm = { texto: patch.nota.trim(), criadoEm: new Date().toISOString() };

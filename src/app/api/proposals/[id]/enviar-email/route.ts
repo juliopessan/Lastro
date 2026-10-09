@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { atualizarCrm, buscarProposta } from "@/lib/store";
 import { gerarPdfProposta } from "@/lib/pdf";
 import { enviarPropostaPorEmail } from "@/lib/email";
+import { urlInterna, urlPublica } from "@/lib/url";
 
 export async function POST(
   req: NextRequest,
@@ -24,11 +25,13 @@ export async function POST(
     return NextResponse.json({ erro: "Informe o e-mail do cliente." }, { status: 400 });
   }
 
-  const link = `${req.nextUrl.origin}/propostas/${id}`;
+  // O link vai pro cliente, então tem que ser o endereço público. O PDF é
+  // impresso pelo próprio servidor, então vai pelo endereço interno.
+  const link = `${urlPublica(req)}/propostas/${id}`;
   const nome = nomeContato?.trim() || proposta.contato?.nome;
 
   try {
-    const pdf = await gerarPdfProposta(link);
+    const pdf = await gerarPdfProposta(`${urlInterna(req)}/propostas/${id}`);
     await enviarPropostaPorEmail({
       para: emailCliente.trim(),
       cliente: nome || proposta.briefing.cliente,

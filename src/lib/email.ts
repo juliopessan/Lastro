@@ -274,3 +274,53 @@ export async function enviarComprovanteAssinatura(params: {
   });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Resumo do dia para o admin: contatos marcados, propostas vencendo e
+ * aberturas recentes pelo cliente. Montado em lib/lembretes.
+ */
+export async function enviarResumoDoDia(
+  resumo: import("./lembretes").ResumoDoDia,
+  urlBase: string
+) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) throw new Error("ADMIN_EMAIL não configurado.");
+  const resend = resendClient();
+
+  const link = (id: string, texto: string) =>
+    urlBase ? `<a href="${escapeHtml(`${urlBase}/propostas/${id}`)}" style="color:#11110f;">${escapeHtml(texto)}</a>` : escapeHtml(texto);
+  const data = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const bloco = (titulo: string, linhas: string[]) =>
+    linhas.length
+      ? `<p style="font-family:'Courier New',Courier,monospace;font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;color:#9c988e;margin:24px 0 8px;">${titulo}</p>
+         <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:#11110f;">${linhas.map((l) => `<li>${l}</li>`).join("")}</ul>`
+      : "";
+
+  const html = `
+    <div style="font-family: Helvetica, Arial, sans-serif; color:#11110f; max-width:560px;">
+      <p style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:0.08em;color:#9c988e;text-transform:uppercase;margin:0 0 4px;">Lastro · resumo do dia</p>
+      <p style="font-size:18px;font-weight:700;margin:0;">${escapeHtml(data(`${resumo.dia}T12:00:00Z`))}</p>
+      ${bloco(
+        "Contatos para fazer",
+        resumo.contatos.map((c) => `${link(c.id, c.cliente)}: ${escapeHtml(c.titulo)}${c.atrasado ? ` <span style="color:#c8481c;">(atrasado, era ${escapeHtml(data(`${c.data}T12:00:00Z`))})</span>` : ""}`)
+      )}
+      ${bloco(
+        "Propostas vencendo",
+        resumo.vencendo.map((v) => `${link(v.id, v.cliente)}: vence ${v.dias <= 1 ? "em até 1 dia" : `em ${v.dias} dias`} (${escapeHtml(data(v.venceEm))})`)
+      )}
+      ${bloco(
+        "Abertas pelo cliente nas últimas 24h",
+        resumo.aberturas.map((a) => `${link(a.id, a.cliente)}: ${a.vezes} ${a.vezes === 1 ? "vez" : "vezes"}`)
+      )}
+      <p style="font-family:'Courier New',Courier,monospace;font-size:10.5px;color:#9c988e;margin-top:28px;">Enviado pelo Lastro todo dia às 8h, quando há algo pendente.</p>
+    </div>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || DEFAULT_FROM,
+    to: adminEmail,
+    subject: `Lastro · para hoje: ${resumo.contatos.length} contato(s), ${resumo.vencendo.length} vencendo, ${resumo.aberturas.length} aberta(s)`,
+    html,
+  });
+  if (error) throw new Error(error.message);
+}

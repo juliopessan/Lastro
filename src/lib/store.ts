@@ -323,3 +323,30 @@ export async function registrarVisualizacao(
   salvarLinha(db, atualizada);
   return "registrada";
 }
+
+// Controle do resumo diário por e-mail (lib/agendador).
+export function lembreteJaTratado(chave: string): boolean {
+  return Boolean(getDb().prepare(`SELECT 1 FROM lembretes_enviados WHERE chave = ?`).get(chave));
+}
+
+/**
+ * Reserva o lembrete antes de enviar, de forma atômica: o INSERT falha pela
+ * chave primária se outro processo já reservou. O Next sobe a inicialização
+ * em mais de um processo, e sem isto os dois enviariam o mesmo resumo.
+ */
+export function reservarLembrete(chave: string): boolean {
+  try {
+    getDb()
+      .prepare(`INSERT INTO lembretes_enviados (chave, em, resultado) VALUES (?, ?, 'em andamento')`)
+      .run(chave, new Date().toISOString());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function registrarLembrete(chave: string, resultado: string): void {
+  getDb()
+    .prepare(`INSERT OR REPLACE INTO lembretes_enviados (chave, em, resultado) VALUES (?, ?, ?)`)
+    .run(chave, new Date().toISOString(), resultado.slice(0, 500));
+}

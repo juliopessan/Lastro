@@ -7,6 +7,9 @@ import { PropostasList, PropostaResumo } from "@/components/PropostasList";
 import { formatUsd } from "@/lib/pricing";
 import { formatarTotais, moedaDe } from "@/lib/moeda";
 import { dataEmissao, propostaVencida, statusEfetivo } from "@/lib/crm";
+import { montarResumoDoDia } from "@/lib/lembretes";
+import { agendadorAtivo } from "@/lib/agendador";
+import { ParaHoje } from "@/components/ParaHoje";
 
 export const metadata: Metadata = { title: "Painel" };
 export const dynamic = "force-dynamic";
@@ -86,6 +89,8 @@ export default async function AdminPage() {
           <Fig value={String(assinadas).padStart(2, "0")} label="assinadas" />
         </div>
       </LedgerPanel>
+
+      <ParaHoje resumo={montarResumoDoDia(propostas)} emailAtivo={agendadorAtivo()} />
 
       <div style={{ marginTop: 56 }}>
         <PropostasList propostas={resumo} />

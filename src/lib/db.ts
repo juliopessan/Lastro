@@ -28,6 +28,13 @@ function criarConexao(): Database.Database {
       cliente TEXT NOT NULL,
       dados TEXT NOT NULL
     );
+    -- Um registro por resumo diário já tratado: reiniciar o servidor não
+    -- manda o mesmo resumo de novo (lib/agendador).
+    CREATE TABLE IF NOT EXISTS lembretes_enviados (
+      chave TEXT PRIMARY KEY,
+      em TEXT NOT NULL,
+      resultado TEXT NOT NULL
+    );
   `);
   return db;
 }

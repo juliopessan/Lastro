@@ -195,3 +195,17 @@ describe("aberturas pelo cliente", () => {
     expect(await store.registrarVisualizacao(p.id, cliente, t0)).toBe("nao-encontrada");
   });
 });
+
+describe("reserva do resumo diário", () => {
+  it("só a primeira reserva do dia passa; as outras desistem", () => {
+    expect(store.reservarLembrete("resumo:2026-10-09")).toBe(true);
+    expect(store.reservarLembrete("resumo:2026-10-09")).toBe(false);
+    expect(store.reservarLembrete("resumo:2026-10-10")).toBe(true);
+  });
+
+  it("registrar o resultado não reabre a reserva", () => {
+    expect(store.reservarLembrete("resumo:2026-11-01")).toBe(true);
+    store.registrarLembrete("resumo:2026-11-01", "enviado");
+    expect(store.reservarLembrete("resumo:2026-11-01")).toBe(false);
+  });
+});

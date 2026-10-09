@@ -10,7 +10,9 @@ export function proxy(req: NextRequest) {
   // Rotas que o cliente usa sem conta: assinar e registrar que abriu a página.
   const ehApiPublica = pathname.endsWith("/assinar") || pathname.endsWith("/visualizacao");
   const precisaAuth =
-    (pathname.startsWith("/admin") || pathname.startsWith("/api/proposals")) &&
+    (pathname.startsWith("/admin") ||
+      pathname.startsWith("/api/proposals") ||
+      pathname.startsWith("/api/admin")) &&
     !ehApiPublica;
 
   if (!precisaAuth) return NextResponse.next();
@@ -28,5 +30,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/proposals/:path*"],
+  matcher: ["/admin/:path*", "/api/proposals/:path*", "/api/admin/:path*"],
 };

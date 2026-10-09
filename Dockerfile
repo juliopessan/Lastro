@@ -72,8 +72,10 @@ COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/lastro-entrypoint
 # Precisa de pasta pessoal gravável: o Chromium grava ali o perfil e o banco
 # do crashpad, e sem ela nem abre ("chrome_crashpad_handler: --database is
 # required"). O teste de fumaça do CI pegou isso.
-RUN groupadd --system lastro \
-  && useradd --system --gid lastro --create-home --home-dir /home/lastro lastro \
+# UID/GID fixos (10001): a pasta de backup montada do host precisa de um dono
+# previsível — na VPS, `chown 10001:10001 /var/backups/lastro`.
+RUN groupadd --system --gid 10001 lastro \
+  && useradd --system --uid 10001 --gid lastro --create-home --home-dir /home/lastro lastro \
   && mkdir -p /data && chown -R lastro:lastro /data /app
 ENV HOME=/home/lastro
 USER lastro

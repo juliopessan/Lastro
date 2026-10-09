@@ -1,0 +1,34 @@
+# Produção na VPS, atrás do Traefik que já atende os outros projetos em
+# /docker (HTTPS pelo resolver "letsencrypt", HTTP redireciona para HTTPS).
+#
+# Na VPS, dentro de /docker/lastro:
+#   docker compose -f docker-compose.traefik.yml up -d --build
+#
+# Tudo vem do arquivo .env desta pasta (fora do git): as variáveis do app
+# (veja .env.example) e LASTRO_HOST, o endereço público.
+services:
+  lastro:
+    build: .
+    image: lastro:latest
+    container_name: lastro
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # O banco. Volume nomeado: `docker compose down` não apaga; `down -v` apaga.
+      - lastro-data:/data
+      # Réplica contínua do Litestream, numa pasta do host, fora do volume
+      # acima. Protege contra contêiner ou volume perdido. Não protege contra
+      # perder a VPS: para isso, aponte LITESTREAM_REPLICA_URL para um bucket.
+      - /var/backups/lastro:/replica
+    # Chromium é a parte pesada (PDF). O teto protege os outros projetos da
+    # mesma VPS se uma impressão sair do controle.
+    mem_limit: 1g
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.lastro.rule=Host(`${LASTRO_HOST:?defina LASTRO_HOST no .env}`)
+      - traefik.http.routers.lastro.entrypoints=websecure
+      - traefik.http.routers.lastro.tls.certresolver=letsencrypt
+      - traefik.http.services.lastro.loadbalancer.server.port=3000
+
+volumes:
+  lastro-data:

@@ -188,6 +188,23 @@ e avisa no log que o banco está sem backup externo. O CI testa esse ciclo:
 grava uma proposta, destrói o contêiner, sobe outro com o volume vazio e confere
 que ela voltou.
 
+### Na VPS da UKode (Traefik)
+
+A VPS já roda um Traefik que atende os outros projetos em `/docker` e emite
+os certificados. O `docker-compose.traefik.yml` encaixa o Lastro nele:
+
+```bash
+cd /docker && git clone https://github.com/juliopessan/Lastro.git lastro && cd lastro
+mkdir -p /var/backups/lastro && chown 10001:10001 /var/backups/lastro
+cp .env.example .env    # preencha; LASTRO_HOST é o endereço público
+docker compose -f docker-compose.traefik.yml up -d --build
+```
+
+Para atualizar depois de um push: `git pull && docker compose -f
+docker-compose.traefik.yml up -d --build`. O banco fica no volume
+`lastro-data` e a réplica do Litestream em `/var/backups/lastro`, com
+`LITESTREAM_REPLICA_URL=file:///replica/lastro` no `.env`.
+
 Em Railway ou Render: aponte o serviço pra este repositório (eles detectam o
 `Dockerfile` sozinhos), anexe um volume persistente em `/data`, e configure
 as mesmas variáveis de ambiente do `.env.local` no painel deles.

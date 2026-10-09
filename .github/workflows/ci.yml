@@ -39,5 +39,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+      # O compose de produção da VPS: confere que monta sem erro de sintaxe
+      # nem variável faltando (o .env real só existe no servidor).
+      - run: touch .env && LASTRO_HOST=ci.exemplo.test docker compose -f docker-compose.traefik.yml config --quiet
       - run: docker build -t lastro:ci .
       - run: scripts/smoke-docker.sh lastro:ci

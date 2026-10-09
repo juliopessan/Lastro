@@ -5,6 +5,7 @@ import { hashBriefing, resumoBriefingParaIa } from "./briefing-hash";
 import { geradoSchema } from "./schemas";
 import { buscarCategoriaMercado, CATEGORIAS_MERCADO } from "./market-pricing";
 import { z } from "zod";
+import { ehMoeda } from "./moeda";
 
 const MODEL = process.env.AI_MODEL || "deepseek-flash";
 
@@ -48,6 +49,7 @@ Regras estritas:
 - NUNCA invente números, prazos, valores ou itens de escopo que não estejam no briefing. Todos os números (preços, prazos, quantidades) já foram definidos pelo usuário e não fazem parte da sua resposta.
 - Sua função é só a narrativa: resumo executivo, uma introdução curta para cada frente de escopo, os próximos passos e uma nota final.
 - Tom: consultivo, direto, confiante, sem exagero de marketing. Português do Brasil.
+- Os valores do briefing estão em reais, a menos que venha o campo "moeda" (USD = dólar americano, EUR = euro). Se citar algum valor, use essa moeda.
 - Escreva para o cliente, não para outro técnico. Nada de jargão: use "projeto" e "primeira versão" no lugar de MVP, "reunião de início" no lugar de kickoff, "publicação" no lugar de deploy. Evite sprint, stack, backlog, entregável.
 - NUNCA use travessão (—) nem hífen duplo (--) no meio das frases: é a marca registrada de texto escrito por IA. Separe as ideias com ponto, vírgula, dois-pontos ou parênteses.
 - Responda SOMENTE com um objeto JSON válido, sem markdown, sem texto fora do JSON, no formato exato:
@@ -307,6 +309,9 @@ export function normalizarBriefingExtraido(bruto: unknown): BriefingExtraido {
       .filter((f) => f.fase || f.entregas),
     validadeDias: b.validadeDias,
   };
+  // Real, dólar e euro viram a moeda da proposta. Outra moeda (libra, iene...)
+  // fica sem: a tela avisa que os números vieram sem conversão.
+  if (ehMoeda(r.data.moeda) && r.data.moeda !== "BRL") briefing.moeda = r.data.moeda;
   if (!briefing.itensInvestimento.length) briefing.itensInvestimento = [{ modulo: "", descricao: "", valor: 0 }];
   if (!briefing.cronograma.length) briefing.cronograma = [{ fase: "", periodo: "", entregas: "" }];
 

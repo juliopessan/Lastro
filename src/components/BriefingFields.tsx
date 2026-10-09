@@ -9,6 +9,7 @@ import {
 } from "@/lib/types";
 import { categoriasPorUnidade, buscarCategoriaMercado } from "@/lib/market-pricing";
 import { formatBrl } from "@/lib/pricing";
+import { Moeda, MOEDAS, moedaDe, NOME_MOEDA, simboloMoeda } from "@/lib/moeda";
 
 const categoriasProjeto = categoriasPorUnidade("projeto");
 const categoriasMensal = categoriasPorUnidade("mensal");
@@ -35,6 +36,12 @@ export function BriefingFields({
   function atualizar<K extends keyof BriefingInput>(campo: K, valor: BriefingInput[K]) {
     onChange({ ...dados, [campo]: valor });
   }
+
+  const moeda = moedaDe(dados);
+  const simbolo = simboloMoeda(moeda);
+  // A tabela de referência de mercado é brasileira, em reais. Em outra moeda
+  // a comparação exigiria cotação, então a categoria nem aparece.
+  const emReal = moeda === "BRL";
 
   // Frentes
   function addFrente() {
@@ -225,10 +232,37 @@ export function BriefingFields({
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h3 style={{ fontSize: 15 }}>Investimento (setup)</h3>
-          <button type="button" className="btn btn-ghost" onClick={addInvestimento}>
-            + Item
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <select
+              aria-label="Moeda da proposta"
+              value={moeda}
+              // Real fica implícito (sem o campo), como nas propostas antigas.
+              onChange={(e) => atualizar("moeda", e.target.value === "BRL" ? undefined : (e.target.value as Moeda))}
+              style={{
+                background: "var(--paper-deep)",
+                border: "1px solid var(--rule)",
+                padding: "6px 8px",
+                fontSize: 12.5,
+                fontFamily: "var(--mono)",
+              }}
+            >
+              {MOEDAS.map((m) => (
+                <option key={m} value={m}>
+                  {NOME_MOEDA[m]}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="btn btn-ghost" onClick={addInvestimento}>
+              + Item
+            </button>
+          </div>
         </div>
+        {!emReal && (
+          <p style={{ color: "var(--ink-faint)", fontSize: 12.5, marginBottom: 12 }}>
+            Todos os valores da proposta ficam em {NOME_MOEDA[moeda]}. O comparativo de mercado só
+            aparece em propostas em real, porque a tabela de referência é brasileira.
+          </p>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {dados.itensInvestimento.map((item, i) => {
             const catMercado = buscarCategoriaMercado(item.categoriaMercado);
@@ -251,7 +285,7 @@ export function BriefingFields({
                     type="number"
                     value={item.valor}
                     onChange={(e) => updateInvestimento(i, { valor: Number(e.target.value) })}
-                    placeholder="Valor (R$)"
+                    placeholder={`Valor (${simbolo})`}
                     style={{ flex: "0 0 140px", background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "8px 10px", fontSize: 13.5, fontFamily: "var(--mono)" }}
                   />
                   {dados.itensInvestimento.length > 1 && (
@@ -260,34 +294,36 @@ export function BriefingFields({
                     </button>
                   )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <select
-                    value={item.categoriaMercado || ""}
-                    onChange={(e) =>
-                      updateInvestimento(i, { categoriaMercado: e.target.value || undefined })
-                    }
-                    style={{
-                      background: "var(--paper-deep)",
-                      border: "1px solid var(--rule)",
-                      padding: "6px 8px",
-                      fontSize: 12,
-                      color: "var(--ink-soft)",
-                      maxWidth: 280,
-                    }}
-                  >
-                    <option value="">Categoria de mercado (opcional)</option>
-                    {categoriasProjeto.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.categoria}
-                      </option>
-                    ))}
-                  </select>
-                  {catMercado && (
-                    <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--ink-faint)" }}>
-                      mercado: {formatBrl(catMercado.faixaMin)} – {formatBrl(catMercado.faixaMax)}
-                    </span>
-                  )}
-                </div>
+                {emReal && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <select
+                      value={item.categoriaMercado || ""}
+                      onChange={(e) =>
+                        updateInvestimento(i, { categoriaMercado: e.target.value || undefined })
+                      }
+                      style={{
+                        background: "var(--paper-deep)",
+                        border: "1px solid var(--rule)",
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        color: "var(--ink-soft)",
+                        maxWidth: 280,
+                      }}
+                    >
+                      <option value="">Categoria de mercado (opcional)</option>
+                      {categoriasProjeto.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.categoria}
+                        </option>
+                      ))}
+                    </select>
+                    {catMercado && (
+                      <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--ink-faint)" }}>
+                        mercado: {formatBrl(catMercado.faixaMin)} – {formatBrl(catMercado.faixaMax)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -335,41 +371,43 @@ export function BriefingFields({
                     type="number"
                     value={item.valorMensal}
                     onChange={(e) => updateRecorrencia(i, { valorMensal: Number(e.target.value) })}
-                    placeholder="R$/mês"
+                    placeholder={`${simbolo}/mês`}
                     style={{ flex: "0 0 140px", background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "8px 10px", fontSize: 13.5, fontFamily: "var(--mono)" }}
                   />
                   <button type="button" className="btn btn-ghost" onClick={() => removeRecorrencia(i)}>
                     ×
                   </button>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <select
-                    value={item.categoriaMercado || ""}
-                    onChange={(e) =>
-                      updateRecorrencia(i, { categoriaMercado: e.target.value || undefined })
-                    }
-                    style={{
-                      background: "var(--paper-deep)",
-                      border: "1px solid var(--rule)",
-                      padding: "6px 8px",
-                      fontSize: 12,
-                      color: "var(--ink-soft)",
-                      maxWidth: 280,
-                    }}
-                  >
-                    <option value="">Categoria de mercado (opcional)</option>
-                    {categoriasMensal.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.categoria}
-                      </option>
-                    ))}
-                  </select>
-                  {catMercado && (
-                    <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--ink-faint)" }}>
-                      mercado: {formatBrl(catMercado.faixaMin)} – {formatBrl(catMercado.faixaMax)}/mês
-                    </span>
-                  )}
-                </div>
+                {emReal && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <select
+                      value={item.categoriaMercado || ""}
+                      onChange={(e) =>
+                        updateRecorrencia(i, { categoriaMercado: e.target.value || undefined })
+                      }
+                      style={{
+                        background: "var(--paper-deep)",
+                        border: "1px solid var(--rule)",
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        color: "var(--ink-soft)",
+                        maxWidth: 280,
+                      }}
+                    >
+                      <option value="">Categoria de mercado (opcional)</option>
+                      {categoriasMensal.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.categoria}
+                        </option>
+                      ))}
+                    </select>
+                    {catMercado && (
+                      <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--ink-faint)" }}>
+                        mercado: {formatBrl(catMercado.faixaMin)} – {formatBrl(catMercado.faixaMax)}/mês
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

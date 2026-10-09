@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { listarPropostas } from "@/lib/store";
+import { moedaDe } from "@/lib/moeda";
 import { Eyebrow, Voice } from "@/components/Ledger";
 import { CrmBoard, CrmCard } from "@/components/CrmBoard";
 import { propostaVencida, statusEfetivo } from "@/lib/crm";
@@ -16,6 +17,7 @@ export default async function CrmPage() {
     titulo: p.gerado.tituloProposta,
     cliente: p.briefing.cliente,
     valor: p.briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0),
+    moeda: moedaDe(p.briefing),
     status: statusEfetivo(p),
     proximoContato: p.proximoContato ?? null,
     notas: p.notas ?? [],

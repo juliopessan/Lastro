@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatBrl, formatUsd } from "@/lib/pricing";
+import { formatUsd } from "@/lib/pricing";
+import { formatarMoeda, Moeda } from "@/lib/moeda";
 import { STATUS_LABEL, STATUS_ORDEM } from "@/lib/crm";
 import { StatusProposta } from "@/lib/types";
 
@@ -14,6 +15,7 @@ export type PropostaResumo = {
   /** Data da versão que está na rua — igual à do documento (lib/crm). */
   emitidoEm: string;
   valor: number;
+  moeda: Moeda;
   custoUsd: number;
   status: StatusProposta;
   vencida: boolean;
@@ -145,7 +147,7 @@ export function PropostasList({ propostas }: { propostas: PropostaResumo[] }) {
               <span
                 style={{ fontFamily: "var(--mono)", fontSize: 13, fontVariantNumeric: "tabular-nums" }}
               >
-                {formatBrl(p.valor)}
+                {formatarMoeda(p.valor, p.moeda)}
               </span>
               <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
                 {formatUsd(p.custoUsd)} IA

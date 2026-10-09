@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatBrl } from "@/lib/pricing";
+import { formatarMoeda, Moeda } from "@/lib/moeda";
 
 export type ItemLixeira = {
   id: string;
   titulo: string;
   cliente: string;
   valor: number;
+  moeda: Moeda;
   excluidoEm: string;
 };
 
@@ -70,7 +71,7 @@ export function LixeiraList({ itens }: { itens: ItemLixeira[] }) {
           </div>
           <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
             <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-              {formatBrl(p.valor)}
+              {formatarMoeda(p.valor, p.moeda)}
             </span>
             <button
               type="button"

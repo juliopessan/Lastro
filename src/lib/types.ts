@@ -1,3 +1,5 @@
+import type { Moeda } from "./moeda";
+
 // Tipos centrais do sistema de propostas.
 // "Medido" = veio direto do formulário (números, itens, prazos).
 // "Gerado" = texto produzido pela IA a partir do briefing.
@@ -32,6 +34,8 @@ export type FaseCronograma = {
 };
 
 export type BriefingInput = {
+  /** Moeda de todos os valores da proposta. Ausente = real (propostas antigas). */
+  moeda?: Moeda;
   cliente: string;
   projetos: string;
   contexto: string;

@@ -6,6 +6,7 @@ import { Eyebrow, Flag } from "@/components/Ledger";
 import { ImportarDocumento, ResultadoImportacao } from "@/components/ImportarDocumento";
 import { BriefingFields, briefingVazio } from "@/components/BriefingFields";
 import { BriefingInput } from "@/lib/types";
+import { ehMoeda, NOME_MOEDA } from "@/lib/moeda";
 
 const CHAVE_RASCUNHO = "lastro:rascunho-briefing";
 
@@ -124,12 +125,15 @@ export default function NovaPropostaPage() {
           <Flag titulo={`Preenchido pela IA a partir de ${importacao.origem}`}>
             Confira cada valor, prazo e item antes de gerar a proposta: a IA copia do documento,
             mas pode ler errado. O que não estava no documento ficou em branco.
+            {ehMoeda(importacao.moeda) &&
+              importacao.moeda !== "BRL" &&
+              ` A moeda da proposta ficou ${NOME_MOEDA[importacao.moeda]}, como no documento.`}
           </Flag>
-          {importacao.moeda !== "BRL" && (
+          {!ehMoeda(importacao.moeda) && (
             <Flag titulo={`Documento em ${importacao.moeda}`}>
-              O Lastro apresenta os valores em reais (R$). Os números foram copiados como estão,
-              sem conversão: um valor de {importacao.moeda} 3.000 aparece na proposta como R$ 3.000.
-              Converta os valores antes de gerar.
+              O Lastro trabalha com real, dólar e euro. Os números foram copiados como estão, sem
+              conversão, e a proposta ficou em real: converta os valores ou escolha outra moeda
+              antes de gerar.
             </Flag>
           )}
         </div>

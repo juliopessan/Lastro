@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { STATUS_LABEL, STATUS_ORDEM, contatoAtrasado } from "@/lib/crm";
 import { StatusProposta, NotaCrm, Contato } from "@/lib/types";
-import { formatBrl } from "@/lib/pricing";
+import { formatarMoeda, Moeda } from "@/lib/moeda";
 
 export type CrmCard = {
   id: string;
   titulo: string;
   cliente: string;
   valor: number;
+  moeda: Moeda;
   status: StatusProposta;
   proximoContato: string | null;
   notas: NotaCrm[];
@@ -140,7 +141,7 @@ function Card({
       </div>
 
       <p style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
-        {formatBrl(card.valor)}
+        {formatarMoeda(card.valor, card.moeda)}
       </p>
 
       <div>

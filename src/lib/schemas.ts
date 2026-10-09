@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { STATUS_ORDEM } from "./crm";
 import { StatusProposta } from "./types";
+import { MOEDAS } from "./moeda";
 
 // Validação de runtime dos payloads que chegam nas rotas de proposta.
 // Fica aqui, e não dentro de um route.ts, porque mais de uma rota valida o
@@ -27,6 +28,7 @@ const faseCronogramaSchema = z.object({
 });
 
 export const briefingSchema = z.object({
+  moeda: z.enum(MOEDAS).optional(),
   cliente: z.string(),
   projetos: z.string(),
   contexto: z.string(),

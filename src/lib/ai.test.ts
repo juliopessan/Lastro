@@ -176,6 +176,19 @@ describe("normalizarBriefingExtraido", () => {
     expect(b.itensInvestimento.map((i) => i.categoriaMercado)).toEqual([undefined, undefined, "website-b2b"]);
   });
 
+  it("dólar e euro viram a moeda da proposta; real fica implícito", () => {
+    const com = (moeda: string) => normalizarBriefingExtraido({ moeda, briefing: {} }).briefing.moeda;
+    expect(com("USD")).toBe("USD");
+    expect(com("eur")).toBe("EUR");
+    expect(com("BRL")).toBeUndefined();
+  });
+
+  it("moeda não suportada não vira moeda da proposta, mas é informada para o aviso", () => {
+    const r = normalizarBriefingExtraido({ moeda: "GBP", briefing: {} });
+    expect(r.briefing.moeda).toBeUndefined();
+    expect(r.moeda).toBe("GBP");
+  });
+
   it("recusa resposta sem o objeto briefing", () => {
     expect(() => normalizarBriefingExtraido({ moeda: "BRL" })).toThrow(/fora do formato/);
   });

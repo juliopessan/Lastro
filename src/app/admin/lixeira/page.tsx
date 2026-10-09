@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { listarLixeira } from "@/lib/store";
+import { moedaDe } from "@/lib/moeda";
 import { Eyebrow } from "@/components/Ledger";
 import { ItemLixeira, LixeiraList } from "@/components/LixeiraList";
 
@@ -13,6 +14,7 @@ export default async function LixeiraPage() {
     titulo: p.gerado.tituloProposta,
     cliente: p.briefing.cliente,
     valor: p.briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0),
+    moeda: moedaDe(p.briefing),
     excluidoEm: p.excluidoEm!,
   }));
 

@@ -7,7 +7,7 @@ import { Eyebrow, Fig, Flag, LedgerPanel, Measured, Voice } from "@/components/L
 import { PrintButton } from "@/components/PrintButton";
 import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
-import { formatBrl } from "@/lib/pricing";
+import { formatarMoeda, moedaDe } from "@/lib/moeda";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { bloqueioAssinatura, dataEmissao, dataValidade } from "@/lib/crm";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
@@ -38,6 +38,10 @@ export default async function PropostaPage({
 
   const { briefing, gerado, geracao } = proposta;
 
+  // Todos os valores do documento na moeda da proposta (real, se não tiver).
+  const moeda = moedaDe(briefing);
+  const fmt = (valor: number) => formatarMoeda(valor, moeda);
+
   const totalSetup = briefing.itensInvestimento.reduce((s, i) => s + i.valor, 0);
   const totalRecorrencia = briefing.recorrencia.reduce((s, r) => s + r.valorMensal, 0);
   const totalItensEscopo = briefing.frentes.reduce((s, f) => s + f.itens.length, 0);
@@ -59,7 +63,10 @@ export default async function PropostaPage({
   const comparativoRecorrencia = briefing.recorrencia
     .map((item) => ({ item, categoria: buscarCategoriaMercado(item.categoriaMercado) }))
     .filter((c) => c.categoria);
-  const temComparativo = comparativoSetup.length > 0 || comparativoRecorrencia.length > 0;
+  // A tabela de referência é em reais. Em dólar ou euro, comparar exigiria
+  // uma cotação que ninguém digitou, então a seção nem aparece.
+  const temComparativo =
+    moeda === "BRL" && (comparativoSetup.length > 0 || comparativoRecorrencia.length > 0);
   const mercadoSetupMin = comparativoSetup.reduce((s, c) => s + c.categoria!.faixaMin, 0);
   const mercadoSetupMax = comparativoSetup.reduce((s, c) => s + c.categoria!.faixaMax, 0);
   const propostoComparadoSetup = comparativoSetup.reduce((s, c) => s + c.item.valor, 0);
@@ -127,9 +134,9 @@ export default async function PropostaPage({
         }
       >
         <div className="figs">
-          <Fig value={formatBrl(totalSetup)} label="investimento de setup" />
+          <Fig value={fmt(totalSetup)} label="investimento de setup" />
           {totalRecorrencia > 0 && (
-            <Fig value={formatBrl(totalRecorrencia)} label="recorrência (por mês)" />
+            <Fig value={fmt(totalRecorrencia)} label="recorrência (por mês)" />
           )}
           <Fig value={String(briefing.frentes.length).padStart(2, "0")} label="frentes de escopo" />
           <Fig value={String(totalItensEscopo).padStart(2, "0")} label="itens de escopo" />
@@ -249,7 +256,7 @@ export default async function PropostaPage({
                 <tr key={i}>
                   <td>{item.modulo}</td>
                   <td style={{ color: "var(--ink-soft)" }}>{item.descricao}</td>
-                  <td className="num">{formatBrl(item.valor)}</td>
+                  <td className="num">{fmt(item.valor)}</td>
                 </tr>
               ))}
               <tr>
@@ -257,7 +264,7 @@ export default async function PropostaPage({
                   Total do setup
                 </td>
                 <td className="num" style={{ fontWeight: 700 }}>
-                  {formatBrl(totalSetup)}
+                  {fmt(totalSetup)}
                 </td>
               </tr>
             </tbody>
@@ -287,7 +294,7 @@ export default async function PropostaPage({
                     <tr key={i}>
                       <td>{item.servico}</td>
                       <td style={{ color: "var(--ink-soft)" }}>{item.descricao}</td>
-                      <td className="num">{formatBrl(item.valorMensal)}</td>
+                      <td className="num">{fmt(item.valorMensal)}</td>
                     </tr>
                   ))}
                   <tr>
@@ -295,7 +302,7 @@ export default async function PropostaPage({
                       Total mensal
                     </td>
                     <td className="num" style={{ fontWeight: 700 }}>
-                      {formatBrl(totalRecorrencia)}
+                      {fmt(totalRecorrencia)}
                     </td>
                   </tr>
                 </tbody>
@@ -325,9 +332,9 @@ export default async function PropostaPage({
                     <td>{c.item.modulo}</td>
                     <td style={{ color: "var(--ink-soft)" }}>{c.categoria!.categoria}</td>
                     <td className="num">
-                      {formatBrl(c.categoria!.faixaMin)} – {formatBrl(c.categoria!.faixaMax)}
+                      {fmt(c.categoria!.faixaMin)} – {fmt(c.categoria!.faixaMax)}
                     </td>
-                    <td className="num">{formatBrl(c.item.valor)}</td>
+                    <td className="num">{fmt(c.item.valor)}</td>
                   </tr>
                 ))}
                 {comparativoRecorrencia.map((c, i) => (
@@ -335,9 +342,9 @@ export default async function PropostaPage({
                     <td>{c.item.servico}</td>
                     <td style={{ color: "var(--ink-soft)" }}>{c.categoria!.categoria}</td>
                     <td className="num">
-                      {formatBrl(c.categoria!.faixaMin)} – {formatBrl(c.categoria!.faixaMax)} /mês
+                      {fmt(c.categoria!.faixaMin)} – {fmt(c.categoria!.faixaMax)} /mês
                     </td>
-                    <td className="num">{formatBrl(c.item.valorMensal)}/mês</td>
+                    <td className="num">{fmt(c.item.valorMensal)}/mês</td>
                   </tr>
                 ))}
               </tbody>
@@ -347,8 +354,8 @@ export default async function PropostaPage({
             <div className="ledger" style={{ marginTop: 20, padding: 16 }}>
               <Measured titulo="Medido a partir da tabela de referência">
                 Somando só os itens de setup com categoria de mercado atribuída: proposto{" "}
-                {formatBrl(propostoComparadoSetup)} contra uma faixa de mercado de{" "}
-                {formatBrl(mercadoSetupMin)} – {formatBrl(mercadoSetupMax)}. A faixa vem da
+                {fmt(propostoComparadoSetup)} contra uma faixa de mercado de{" "}
+                {fmt(mercadoSetupMin)} – {fmt(mercadoSetupMax)}. A faixa vem da
                 tabela de referência da UKode Labs ({FONTE_BENCHMARK}): é o parâmetro que
                 usamos para precificar, não uma pesquisa de mercado auditada.
                 {ehAdmin && (

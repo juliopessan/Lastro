@@ -4,7 +4,8 @@ import { listarLixeira, listarPropostas } from "@/lib/store";
 import { Eyebrow, LedgerPanel, Fig, Voice } from "@/components/Ledger";
 import { LogoutButton } from "@/components/LogoutButton";
 import { PropostasList, PropostaResumo } from "@/components/PropostasList";
-import { formatBrl, formatUsd } from "@/lib/pricing";
+import { formatUsd } from "@/lib/pricing";
+import { formatarTotais, moedaDe } from "@/lib/moeda";
 import { dataEmissao, propostaVencida, statusEfetivo } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Painel" };
@@ -18,7 +19,10 @@ export default async function AdminPage() {
   const propostas = await listarPropostas();
   const naLixeira = (await listarLixeira()).length;
   const custoTotal = propostas.reduce((s, p) => s + p.geracao.custoUsd, 0);
-  const valorTotalGerado = propostas.reduce((s, p) => s + totalInvestimento(p), 0);
+  // Soma por moeda, nunca entre moedas: "R$ 14.000,00 · US$ 3.000,00".
+  const valorTotalGerado = formatarTotais(
+    propostas.map((p) => ({ valor: totalInvestimento(p), moeda: moedaDe(p.briefing) }))
+  );
   const assinadas = propostas.filter((p) => p.assinatura).length;
 
   const resumo: PropostaResumo[] = propostas.map((p) => ({
@@ -27,6 +31,7 @@ export default async function AdminPage() {
     cliente: p.briefing.cliente,
     emitidoEm: dataEmissao(p).toISOString(),
     valor: totalInvestimento(p),
+    moeda: moedaDe(p.briefing),
     custoUsd: p.geracao.custoUsd,
     status: statusEfetivo(p),
     vencida: propostaVencida(p),
@@ -74,7 +79,7 @@ export default async function AdminPage() {
 
       <LedgerPanel liveLabel="Painel geral" meta={`${propostas.length} propostas geradas`}>
         <div className="figs">
-          <Fig value={formatBrl(valorTotalGerado)} label="em propostas ativas" />
+          <Fig value={valorTotalGerado} label="em propostas ativas" />
           <Fig value={String(propostas.length).padStart(2, "0")} label="propostas no sistema" />
           <Fig value={String(assinadas).padStart(2, "0")} label="assinadas" />
         </div>

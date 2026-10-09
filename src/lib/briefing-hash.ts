@@ -8,6 +8,9 @@ import { BriefingInput } from "./types";
  */
 export function resumoBriefingParaIa(briefing: BriefingInput) {
   return {
+    // Só entra quando não é real: assim o hash das propostas antigas (todas
+    // em real, sem o campo) não muda, e o selo de coerência delas não vira.
+    ...(briefing.moeda && briefing.moeda !== "BRL" ? { moeda: briefing.moeda } : {}),
     cliente: briefing.cliente,
     projetos: briefing.projetos,
     contexto: briefing.contexto,

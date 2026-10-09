@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { BriefingInput, ConteudoGerado, Geracao } from "./types";
 import { custoGeracaoUsd } from "./pricing";
 import { hashBriefing, resumoBriefingParaIa } from "./briefing-hash";
+import { geradoSchema } from "./schemas";
 
 const MODEL = process.env.AI_MODEL || "deepseek-flash";
 
@@ -40,6 +41,52 @@ function buildUserPrompt(briefing: BriefingInput): string {
   return JSON.stringify(resumoBriefingParaIa(briefing), null, 2);
 }
 
+// Travessão com espaço em volta ("isso — aquilo") é a marca de texto de IA que
+// o cliente reconhece. O prompt já proíbe; isto é a rede de segurança para
+// quando o modelo escorrega. Não mexe em faixa sem espaço ("10–15 dias").
+function semTravessao(texto: string, separador: string): string {
+  return texto
+    .replace(/\s+[—–]\s+|\s*—\s*|\s+--\s+/g, separador)
+    .replace(/,\s*([.,;:])/g, "$1")
+    .trim();
+}
+
+/**
+ * Confere o formato do que a IA devolveu e o deixa pronto para gravar.
+ *
+ * Sem isto, uma resposta fora do formato (proximosPassos como texto em vez de
+ * lista, por exemplo) era gravada assim mesmo e a página do cliente quebrava
+ * com erro 500 no primeiro .map.
+ *
+ * Também amarra cada introdução à frente certa do briefing. A página casa
+ * frente e introdução pelo título exato, e o modelo às vezes reescreve o
+ * título ("VR Motors" vira "VR Motors (Contagem)"); aí a frente aparecia sem
+ * texto. Procura pelo título sem diferença de maiúsculas e, se não achar, usa
+ * a posição — o prompt pede as frentes na mesma ordem do briefing.
+ */
+export function normalizarConteudo(bruto: unknown, briefing: BriefingInput): ConteudoGerado {
+  const r = geradoSchema.safeParse(bruto);
+  if (!r.success) {
+    throw new Error("A IA devolveu um conteúdo fora do formato esperado. Tente gerar de novo.");
+  }
+  const c = r.data;
+  const chave = (t: string) => t.trim().toLowerCase();
+
+  const frentesNarrativa = briefing.frentes.map((frente, i) => {
+    const porTitulo = c.frentesNarrativa.find((n) => chave(n.titulo) === chave(frente.titulo));
+    const introducao = porTitulo?.introducao ?? c.frentesNarrativa[i]?.introducao ?? "";
+    return { titulo: frente.titulo, introducao: semTravessao(introducao, ", ") };
+  });
+
+  return {
+    tituloProposta: semTravessao(c.tituloProposta, ": "),
+    resumoExecutivo: semTravessao(c.resumoExecutivo, ", "),
+    frentesNarrativa,
+    proximosPassos: c.proximosPassos.map((p) => semTravessao(p, ", ")).filter(Boolean),
+    notaFinal: semTravessao(c.notaFinal, ", "),
+  };
+}
+
 export async function gerarConteudoProposta(
   briefing: BriefingInput
 ): Promise<{ conteudo: ConteudoGerado; geracao: Geracao }> {
@@ -60,12 +107,13 @@ export async function gerarConteudoProposta(
   const raw = completion.choices[0]?.message?.content;
   if (!raw) throw new Error("A IA não retornou conteúdo.");
 
-  let conteudo: ConteudoGerado;
+  let json: unknown;
   try {
-    conteudo = JSON.parse(raw);
+    json = JSON.parse(raw);
   } catch {
     throw new Error("A IA retornou um JSON inválido.");
   }
+  const conteudo = normalizarConteudo(json, briefing);
 
   const tokensEntrada = completion.usage?.prompt_tokens ?? 0;
   const tokensSaida = completion.usage?.completion_tokens ?? 0;

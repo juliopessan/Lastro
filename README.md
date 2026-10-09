@@ -27,7 +27,10 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 13. **Você recebe um aviso quando o cliente assina** (se configurar `ADMIN_EMAIL`) — um e-mail curto avisando quem assinou e link direto pro painel, sem precisar ficar checando o CRM.
 14. **Uma proposta parecida não começa do zero.** O botão "duplicar" no painel clona o briefing inteiro pra edição imediata — troca o cliente e os valores, sem preencher tudo de novo. O rascunho de uma proposta nova também se salva sozinho no navegador (`localStorage`), então fechar a aba sem querer não perde nada.
 15. **Proposta vencida não fica invisível.** A validade que você define no briefing vira um aviso em clay no painel e no CRM quando passa do prazo — só enquanto a proposta ainda está em aberto (uma já aceita, recusada ou perdida não "vence" mais).
-16. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, duplicar, excluir, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
+16. **Você sabe se o cliente abriu a proposta.** Cada abertura do link público é contada, e o painel e o CRM mostram "aberta 3 vezes, última há 2 horas". A primeira abertura vira nota no CRM. Recarregar a página na mesma meia hora não conta de novo, e não contam a sua própria visita logado, robôs de pré-visualização (WhatsApp, Slack, e-mail) nem o Chrome que gera o PDF.
+17. **O painel diz o que fazer hoje.** O bloco "Para hoje" junta follow-ups vencidos ou do dia, propostas vencendo nos próximos dias e propostas enviadas que o cliente ainda não abriu. Com `ADMIN_EMAIL` e `RESEND_API_KEY` configurados, o mesmo resumo chega por e-mail às 8h (horário de Brasília), uma vez por dia e só quando há algo a fazer. O botão "Enviar resumo agora" manda na hora.
+18. **Serviços que você vende sempre ficam num catálogo.** Em `/admin/catalogo` você cadastra itens de setup e mensais com nome, descrição, valor e moeda. No briefing, o seletor "+ Do catálogo" insere o item com um clique (só aparecem os da moeda da proposta) e cada linha preenchida tem "salvar no catálogo" para alimentar a lista sem sair do formulário.
+19. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, duplicar, excluir, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
 
 ## Como funciona
 
@@ -101,7 +104,8 @@ Abra `.env.local` e preencha cada variável:
 | `SESSION_SECRET` | sim | Segredo usado para assinar o cookie de sessão. Gere um valor aleatório com o comando abaixo |
 | `RESEND_API_KEY` | só pra enviar e-mail | Chave da API do [Resend](https://resend.com). Sem ela, tudo funciona menos o botão "Enviar proposta em PDF" |
 | `EMAIL_FROM` | não | Remetente, ex: `Lastro <propostas@seudominio.com>`. Sem domínio verificado no Resend, só dá pra mandar pro e-mail da sua própria conta lá |
-| `ADMIN_EMAIL` | não | Recebe um aviso quando um cliente assina uma proposta. Sem essa variável, a notificação simplesmente não é enviada — não quebra a assinatura |
+| `ADMIN_EMAIL` | não | Recebe um aviso quando um cliente assina uma proposta e o resumo diário das 8h. Sem essa variável, nenhum dos dois é enviado, e nada mais quebra |
+| `LEMBRETES_DIARIOS` | não | `desligado` desliga o resumo diário por e-mail. Ele só roda em produção e com `ADMIN_EMAIL` e `RESEND_API_KEY` preenchidos |
 | `CHROME_EXECUTABLE_PATH` | não | Caminho do Chrome usado pra gerar o PDF. Padrão assume macOS; em Linux costuma ser `/usr/bin/google-chrome` ou `/usr/bin/chromium` |
 | `NEXT_PUBLIC_SITE_URL` | em produção, sim | Endereço público, ex: `https://propostas.seudominio.com`. É o que vai no link "Revisar e assinar" do e-mail. Sem ela, o link sai do host da requisição, que atrás do proxy da hospedagem pode ser um endereço interno |
 | `LITESTREAM_REPLICA_URL` | em produção, sim | Destino do backup contínuo do banco, ex: `s3://bucket/lastro` (S3, Cloudflare R2, Backblaze B2). Só vale na imagem Docker; veja "Backup" abaixo |
@@ -234,6 +238,10 @@ A assinatura do Lastro é uma assinatura eletrônica simples: identifica quem as
 O aceite em papel não fecha o ciclo. Quem assina pelo quadro impresso do PDF devolve um arquivo que o sistema não lê: não existe assinatura gravada, o status não muda sozinho e o aviso de assinatura não dispara. Nesse caminho você precisa marcar "Aceita" à mão no CRM. Só o aceite feito na página é rastreado ponta a ponta.
 
 O selo de coerência da narrativa responde a mudança de escopo, não a qualidade do texto: ele fica verde quando o texto veio do escopo que está na tela, e não tem como saber se um parágrafo que você reescreveu à mão ficou coerente. Por isso um ajuste manual não devolve o selo ao verde — o que o sistema mede é a origem, e editar à mão não é algo que ele consiga verificar.
+
+A contagem de aberturas é um indício, não uma prova. Ela conta quem carregou a página num navegador com JavaScript, então um cliente que só viu a pré-visualização do link no WhatsApp não aparece, e duas pessoas da mesma empresa abrindo pelo mesmo navegador contam como uma visita se for dentro de meia hora. Serve para saber quando ligar, não para afirmar que alguém leu.
+
+O resumo diário roda dentro do próprio servidor, com uma checagem a cada 15 minutos. Se o servidor estiver fora do ar das 8h até o fim do dia, o resumo daquele dia não sai, e uma falha no envio não é repetida, para não mandar o mesmo e-mail duas vezes. O painel mostra o mesmo conteúdo a qualquer hora.
 
 O limite de tentativas de login vive na memória do processo. Vale pra uma instância só (o Docker do projeto), zera quando o servidor reinicia e, sob ataque, a trava global fecha o login pra todos até a janela de 15 minutos passar. Com várias instâncias, precisaria de um armazenamento compartilhado.
 

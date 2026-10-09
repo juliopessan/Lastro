@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eyebrow } from "@/components/Ledger";
+import { destinoSeguro } from "@/lib/redirect";
 
 function LoginForm() {
   const router = useRouter();
@@ -25,7 +26,7 @@ function LoginForm() {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.erro || "Não foi possível entrar.");
       }
-      router.push(params.get("next") || "/admin");
+      router.push(destinoSeguro(params.get("next")));
       router.refresh();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro desconhecido.");

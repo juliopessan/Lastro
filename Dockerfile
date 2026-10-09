@@ -18,6 +18,12 @@ COPY . .
 # O build do Next não precisa das chaves reais, mas precisa das variáveis
 # existirem para não quebrar em import time.
 ENV NEXT_TELEMETRY_DISABLED=1
+# A landing é pré-gerada no build, então o endereço da imagem de
+# compartilhamento (og:image) fica gravado nela. Sem este argumento, sai
+# "localhost:3000" e a prévia no WhatsApp/LinkedIn vem sem imagem. O resto do
+# app lê a variável em tempo de execução, do .env.
+ARG NEXT_PUBLIC_SITE_URL=""
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
 # ---------- runtime ----------

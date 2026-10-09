@@ -8,7 +8,11 @@
 # (veja .env.example) e LASTRO_HOST, o endereço público.
 services:
   lastro:
-    build: .
+    build:
+      context: .
+      args:
+        # Vai para a landing pré-gerada (imagem de compartilhamento).
+        NEXT_PUBLIC_SITE_URL: https://${LASTRO_HOST:?defina LASTRO_HOST no .env}
     image: lastro:latest
     container_name: lastro
     restart: unless-stopped

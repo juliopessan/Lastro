@@ -221,3 +221,56 @@ export async function avisarAssinatura(params: {
     html,
   });
 }
+
+/**
+ * Comprovante para quem assinou, quando informou o e-mail. Dá ao cliente uma
+ * cópia da evidência fora do sistema: data, hora e o hash do documento que ele
+ * aceitou. Best-effort, como o aviso ao admin: a assinatura já está gravada e
+ * não depende disto. Sem domínio verificado no Resend, só chega ao e-mail da
+ * própria conta do Resend — o erro é registrado no log, não mostrado ao cliente.
+ */
+export async function enviarComprovanteAssinatura(params: {
+  para: string;
+  nome: string;
+  tituloProposta: string;
+  aceitoEm: string;
+  hashDocumento: string;
+  link: string;
+}) {
+  const nome = escapeHtml(params.nome);
+  const titulo = escapeHtml(params.tituloProposta);
+  const link = escapeHtml(params.link);
+  const quando = new Date(params.aceitoEm).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const hash = escapeHtml(params.hashDocumento);
+  const resend = resendClient();
+
+  const html = `
+    <div style="font-family: Helvetica, Arial, sans-serif; color:#11110f; max-width:520px;">
+      <p style="font-family: 'Courier New', Courier, monospace; font-size:11px; letter-spacing:0.08em; color:#4f9c6b; text-transform:uppercase; margin:0 0 12px;">
+        Comprovante de aceite
+      </p>
+      <p style="font-size:15px; line-height:1.6;">
+        Olá, ${nome}. Registramos o seu aceite da proposta <strong>${titulo}</strong> em ${quando} (horário de Brasília).
+      </p>
+      <p style="font-size:13px; line-height:1.6; color:#55524b;">
+        O documento que você assinou é identificado pelo código abaixo (SHA-256). Se o conteúdo da
+        proposta mudar em qualquer detalhe, o código muda junto: guarde este e-mail como comprovante.
+      </p>
+      <p style="font-family: 'Courier New', Courier, monospace; font-size:12px; background:#f2efe8; border:1px solid #d6d2c8; padding:10px 12px; word-break:break-all;">
+        ${hash}
+      </p>
+      <p style="margin-top:20px;">
+        <a href="${link}" style="color:#11110f;">Ver a proposta assinada</a>
+      </p>
+      <p style="font-family: 'Courier New', Courier, monospace; font-size:10.5px; color:#9c988e; margin-top:24px;">UKode Labs</p>
+    </div>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || DEFAULT_FROM,
+    to: params.para,
+    subject: `Comprovante de aceite: ${params.tituloProposta}`,
+    html,
+  });
+  if (error) throw new Error(error.message);
+}

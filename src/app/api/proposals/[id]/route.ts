@@ -55,6 +55,13 @@ export async function PATCH(
     geracao: geracao?.data,
   });
 
+  if (atualizada === "assinada") {
+    return NextResponse.json(
+      { erro: "Proposta assinada não pode ser editada. Libere a assinatura para reemitir." },
+      { status: 409 }
+    );
+  }
+
   return NextResponse.json(atualizada);
 }
 

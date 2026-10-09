@@ -4,10 +4,28 @@ import { assinaturaSchema, crmPatchSchema, LIMITE_ASSINATURA_PNG } from "./schem
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 describe("assinaturaSchema", () => {
+  // Entrada válida completa; cada teste de recusa muda UM campo, para recusar
+  // pelo motivo certo e não por outro campo faltando.
+  const valida = {
+    nome: "  Maria Silva  ",
+    cargo: "Diretora",
+    email: "maria@empresa.com",
+    imagemPng: PNG,
+    aceite: true,
+    hashVisto: "a".repeat(64),
+  };
+  const passa = (mudanca: Record<string, unknown>) =>
+    assinaturaSchema.safeParse({ ...valida, ...mudanca }).success;
+
   it("aceita o que o quadro gera", () => {
-    const r = assinaturaSchema.safeParse({ nome: "  Maria Silva  ", cargo: "Diretora", imagemPng: PNG });
+    const r = assinaturaSchema.safeParse(valida);
     expect(r.success).toBe(true);
     expect(r.data?.nome).toBe("Maria Silva");
+  });
+
+  it("aceita sem e-mail ou com e-mail vazio", () => {
+    expect(passa({ email: undefined })).toBe(true);
+    expect(passa({ email: "" })).toBe(true);
   });
 
   it.each([
@@ -15,17 +33,32 @@ describe("assinaturaSchema", () => {
     ["SVG, que pode carregar script", "data:image/svg+xml;base64,PHN2Zz4="],
     ["base64 com lixo", "data:image/png;base64,<script>"],
   ])("recusa imagem: %s", (_, imagemPng) => {
-    expect(assinaturaSchema.safeParse({ nome: "X", imagemPng }).success).toBe(false);
+    expect(passa({ imagemPng })).toBe(false);
   });
 
   it("recusa imagem acima do teto", () => {
-    const grande = "data:image/png;base64," + "A".repeat(LIMITE_ASSINATURA_PNG);
-    expect(assinaturaSchema.safeParse({ nome: "X", imagemPng: grande }).success).toBe(false);
+    expect(passa({ imagemPng: "data:image/png;base64," + "A".repeat(LIMITE_ASSINATURA_PNG) })).toBe(false);
   });
 
   it("recusa nome vazio e nome longo demais", () => {
-    expect(assinaturaSchema.safeParse({ nome: "   ", imagemPng: PNG }).success).toBe(false);
-    expect(assinaturaSchema.safeParse({ nome: "x".repeat(121), imagemPng: PNG }).success).toBe(false);
+    expect(passa({ nome: "   " })).toBe(false);
+    expect(passa({ nome: "x".repeat(121) })).toBe(false);
+  });
+
+  it("recusa sem a declaração marcada", () => {
+    expect(passa({ aceite: false })).toBe(false);
+    expect(passa({ aceite: undefined })).toBe(false);
+    expect(passa({ aceite: "true" })).toBe(false);
+  });
+
+  it("recusa sem o hash do documento visto, ou com hash malformado", () => {
+    expect(passa({ hashVisto: undefined })).toBe(false);
+    expect(passa({ hashVisto: "abc" })).toBe(false);
+    expect(passa({ hashVisto: "Z".repeat(64) })).toBe(false);
+  });
+
+  it("recusa e-mail inválido", () => {
+    expect(passa({ email: "nao-e-email" })).toBe(false);
   });
 });
 

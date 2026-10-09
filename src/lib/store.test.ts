@@ -64,3 +64,75 @@ describe("lixeira", () => {
     expect(await store.restaurarDaLixeira(p.id)).toBeNull();
   });
 });
+
+describe("assinatura com evidências", () => {
+  const entrada = {
+    nome: "Maria Silva",
+    email: "maria@empresa.com",
+    imagemPng: "data:image/png;base64,AA==",
+    ip: "179.118.177.188",
+    navegador: "Chrome",
+    declaracao: "Li e aceito.",
+  };
+
+  it("congela o documento visto e grava o hash dele", async () => {
+    const { hashDocumento, hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    const hash = hashDocumentoAtual(p);
+    const r = await store.assinarProposta(p.id, entrada, hash);
+    if (!("ok" in r)) throw new Error(r.erro);
+
+    const a = r.ok.assinatura!;
+    expect(a.hashDocumento).toBe(hash);
+    expect(hashDocumento(a.documento!)).toBe(hash);
+    expect(a.ip).toBe("179.118.177.188");
+    expect(r.ok.status).toBe("aceita");
+  });
+
+  it("recusa assinar se o documento mudou depois que o cliente abriu a página", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    const hashVisto = hashDocumentoAtual(p);
+    await store.atualizarProposta(p.id, { gerado: { ...p.gerado, notaFinal: "Mudou" } });
+    expect(await store.assinarProposta(p.id, entrada, hashVisto)).toEqual({ erro: "versao-mudou" });
+  });
+
+  it("não assina duas vezes", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    await store.assinarProposta(p.id, entrada, hashDocumentoAtual(p));
+    const depois = await store.buscarProposta(p.id);
+    expect(await store.assinarProposta(p.id, entrada, hashDocumentoAtual(depois!))).toEqual({ erro: "ja-assinada" });
+  });
+
+  it("documento assinado não se edita", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    await store.assinarProposta(p.id, entrada, hashDocumentoAtual(p));
+    expect(await store.atualizarProposta(p.id, { gerado: { ...p.gerado, notaFinal: "x" } })).toBe("assinada");
+  });
+
+  it("liberar guarda a assinatura inteira no histórico e volta a permitir edição", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    await store.assinarProposta(p.id, entrada, hashDocumentoAtual(p));
+    const liberada = await store.liberarAssinatura(p.id);
+
+    expect(liberada?.assinatura).toBeUndefined();
+    expect(liberada?.assinaturasAnteriores?.[0].hashDocumento).toMatch(/^[0-9a-f]{64}$/);
+    expect(liberada?.assinaturasAnteriores?.[0].documento).toBeTruthy();
+    expect(await store.atualizarProposta(p.id, { gerado: { ...p.gerado, notaFinal: "y" } })).not.toBe("assinada");
+  });
+
+  it("cada edição guarda a versão anterior com o hash dela", async () => {
+    const { hashDocumentoAtual } = await import("./assinatura");
+    const p = await novaProposta();
+    const hashOriginal = hashDocumentoAtual(p);
+    const editada = await store.atualizarProposta(p.id, { gerado: { ...p.gerado, notaFinal: "v2" } });
+    if (!editada || editada === "assinada") throw new Error("edição falhou");
+
+    expect(editada.versoes).toHaveLength(1);
+    expect(editada.versoes![0].hash).toBe(hashOriginal);
+    expect(editada.versoes![0].gerado.notaFinal).toBe(p.gerado.notaFinal);
+  });
+});

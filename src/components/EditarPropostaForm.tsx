@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eyebrow, Flag } from "@/components/Ledger";
+import { HistoricoDocumento } from "@/components/HistoricoDocumento";
 import { BriefingFields } from "@/components/BriefingFields";
 import { hashBriefing } from "@/lib/briefing-hash";
 import { BriefingInput, ConteudoGerado, Geracao, Proposal } from "@/lib/types";
@@ -76,7 +77,7 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
 
   async function liberarAssinatura() {
     const ok = window.confirm(
-      "Remover a assinatura atual e liberar o campo para o cliente assinar de novo? A assinatura anterior fica registrada só como nota no CRM."
+      "Liberar a assinatura para editar e reemitir a proposta? A assinatura atual vai para o histórico, com o documento assinado e todas as evidências, e o cliente precisará assinar a versão nova."
     );
     if (!ok) return;
     setErro(null);
@@ -169,6 +170,46 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
     }
   }
 
+  // Proposta assinada não se edita: o documento ficou congelado no aceite.
+  // Para mudar, libera a assinatura (que vai para o histórico) e reemite.
+  if (proposta.assinatura) {
+    return (
+      <main className="wrap" style={{ paddingTop: 56, paddingBottom: 100 }}>
+        <Eyebrow>Lastro · Editar proposta</Eyebrow>
+        <h1 style={{ fontSize: "clamp(26px, 3.2vw, 34px)", marginBottom: 24 }}>
+          {proposta.gerado.tituloProposta}
+        </h1>
+        <Flag titulo="Proposta assinada: o documento está congelado">
+          {proposta.assinatura.nome} aceitou esta proposta em{" "}
+          {new Date(proposta.assinatura.aceitoEm).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}.
+          O conteúdo assinado não pode mudar. Para reemitir com alterações, libere a assinatura:
+          ela vai para o histórico com todas as evidências, a proposta volta a ser editável e o
+          cliente assina a versão nova.
+        </Flag>
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn"
+            disabled={liberando}
+            onClick={liberarAssinatura}
+          >
+            {liberando ? "Liberando…" : "Liberar assinatura e editar"}
+          </button>
+          <Link href={`/propostas/${proposta.id}`} className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+            ← Voltar
+          </Link>
+        </div>
+        {erro && (
+          <div className="flag" style={{ marginTop: 24 }}>
+            <span className="flag-k">Erro</span>
+            <p>{erro}</p>
+          </div>
+        )}
+        <HistoricoDocumento versoes={proposta.versoes} assinaturasAnteriores={proposta.assinaturasAnteriores} />
+      </main>
+    );
+  }
+
   return (
     <main className="wrap" style={{ paddingTop: 56, paddingBottom: 100 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
@@ -180,26 +221,6 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
           ← Voltar sem salvar
         </Link>
       </div>
-
-      {proposta.assinatura && (
-        <div style={{ marginBottom: 32 }}>
-          <Flag titulo="Proposta já assinada">
-            {proposta.assinatura.nome} aceitou esta proposta em{" "}
-            {new Date(proposta.assinatura.aceitoEm).toLocaleString("pt-BR")}. Editar agora muda o
-            documento sem invalidar a assinatura anterior. Se as mudanças exigem novo aceite,
-            libere o campo de assinatura para o cliente assinar de novo.
-          </Flag>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            style={{ border: "1px solid var(--rule)", marginTop: 12 }}
-            disabled={liberando}
-            onClick={liberarAssinatura}
-          >
-            {liberando ? "Liberando…" : "Liberar campo de assinatura"}
-          </button>
-        </div>
-      )}
 
       <p style={{ color: "var(--ink-soft)", maxWidth: "62ch", marginBottom: 40 }}>
         Ajuste os números do briefing ou o texto que a IA escreveu. A edição é direta e salva do
@@ -380,6 +401,8 @@ export function EditarPropostaForm({ proposta }: { proposta: Proposal }) {
           Cancelar
         </Link>
       </div>
+
+      <HistoricoDocumento versoes={proposta.versoes} assinaturasAnteriores={proposta.assinaturasAnteriores} />
     </main>
   );
 }

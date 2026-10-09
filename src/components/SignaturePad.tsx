@@ -2,8 +2,16 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DECLARACAO_ACEITE } from "@/lib/assinatura-texto";
 
-export function SignaturePad({ propostaId }: { propostaId: string }) {
+export function SignaturePad({
+  propostaId,
+  hashDocumento,
+}: {
+  propostaId: string;
+  /** Hash do documento desta página: o aceite só vale para esta versão. */
+  hashDocumento: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const desenhando = useRef(false);
   const temTraco = useRef(false);
@@ -11,6 +19,8 @@ export function SignaturePad({ propostaId }: { propostaId: string }) {
 
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
+  const [email, setEmail] = useState("");
+  const [aceite, setAceite] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -64,13 +74,17 @@ export function SignaturePad({ propostaId }: { propostaId: string }) {
       setErro("Desenhe sua assinatura no quadro acima.");
       return;
     }
+    if (!aceite) {
+      setErro("Marque a declaração de aceite para assinar.");
+      return;
+    }
     setEnviando(true);
     try {
       const imagemPng = canvasRef.current!.toDataURL("image/png");
       const res = await fetch(`/api/proposals/${propostaId}/assinar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, cargo, imagemPng }),
+        body: JSON.stringify({ nome, cargo, email, imagemPng, aceite, hashVisto: hashDocumento }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.erro || "Erro ao assinar.");
@@ -93,6 +107,16 @@ export function SignaturePad({ propostaId }: { propostaId: string }) {
           <label>Cargo (opcional)</label>
           <input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Ex: Sócio-diretor" />
         </div>
+      </div>
+      <div className="field">
+        <label>E-mail (opcional, para receber o comprovante)</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="voce@empresa.com"
+          autoComplete="email"
+        />
       </div>
 
       <div>
@@ -130,6 +154,21 @@ export function SignaturePad({ propostaId }: { propostaId: string }) {
           Limpar
         </button>
       </div>
+
+      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, color: "var(--ink-soft)", cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={aceite}
+          onChange={(e) => setAceite(e.target.checked)}
+          style={{ marginTop: 3, accentColor: "var(--ink)" }}
+        />
+        <span>{DECLARACAO_ACEITE}</span>
+      </label>
+
+      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
+        Código do documento: {hashDocumento.slice(0, 16)}… · o aceite registra nome, data, hora e
+        endereço IP.
+      </p>
 
       {erro && (
         <div className="flag">

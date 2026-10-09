@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assinarProposta, buscarProposta } from "@/lib/store";
-import { avisarAssinatura } from "@/lib/email";
+import { avisarAssinatura, enviarComprovanteAssinatura } from "@/lib/email";
 import { bloqueioAssinatura, dataValidade } from "@/lib/crm";
 import { assinaturaSchema, LIMITE_ASSINATURA_PNG } from "@/lib/schemas";
 import { urlPublica } from "@/lib/url";
+import { ipDoCliente } from "@/lib/assinatura";
+import { DECLARACAO_ACEITE } from "@/lib/assinatura-texto";
 
 // Rota pública: o cliente assina sem conta, só com o link. Por isso tudo que
 // chega aqui é tratado como entrada de estranho — tamanho, formato e estado
@@ -81,14 +83,39 @@ export async function POST(
   if (!dados.success) {
     return NextResponse.json({ erro: dados.error.issues[0].message }, { status: 400 });
   }
-  const { nome, cargo, imagemPng } = dados.data;
+  const { nome, cargo, email, imagemPng, hashVisto } = dados.data;
 
-  const atualizada = await assinarProposta(id, {
-    nome,
-    cargo: cargo || undefined,
-    imagemPng,
-    aceitoEm: new Date().toISOString(),
-  });
+  // Evidências do aceite, capturadas aqui no servidor (o cliente não escolhe
+  // a data, o IP nem o texto da declaração que fica registrado).
+  const resultado = await assinarProposta(
+    id,
+    {
+      nome,
+      cargo: cargo || undefined,
+      email: email || undefined,
+      imagemPng,
+      ip: ipDoCliente(req.headers),
+      navegador: req.headers.get("user-agent")?.slice(0, 300) || undefined,
+      declaracao: DECLARACAO_ACEITE,
+    },
+    hashVisto
+  );
+
+  if ("erro" in resultado) {
+    if (resultado.erro === "nao-encontrada") {
+      return NextResponse.json({ erro: "Proposta não encontrada." }, { status: 404 });
+    }
+    if (resultado.erro === "ja-assinada") {
+      return NextResponse.json({ erro: "Proposta já foi assinada." }, { status: 409 });
+    }
+    return NextResponse.json(
+      {
+        erro: "Esta proposta foi atualizada depois que você abriu a página. Recarregue para ler a versão nova antes de assinar.",
+      },
+      { status: 409 }
+    );
+  }
+  const atualizada = resultado.ok;
 
   // Best-effort: se o aviso falhar (sem ADMIN_EMAIL, Resend fora do ar etc.),
   // a assinatura já foi salva e não deve ser desfeita por causa disso.
@@ -100,6 +127,20 @@ export async function POST(
   }).catch((err) => {
     console.error("Falha ao enviar aviso de assinatura:", err);
   });
+
+  const assinada = atualizada.assinatura!;
+  if (assinada.email && assinada.hashDocumento) {
+    enviarComprovanteAssinatura({
+      para: assinada.email,
+      nome: assinada.nome,
+      tituloProposta: (assinada.documento?.gerado ?? atualizada.gerado).tituloProposta,
+      aceitoEm: assinada.aceitoEm,
+      hashDocumento: assinada.hashDocumento,
+      link: `${urlPublica(req)}/propostas/${id}`,
+    }).catch((err) => {
+      console.error("Falha ao enviar comprovante de assinatura:", err);
+    });
+  }
 
   return NextResponse.json(atualizada);
 }

@@ -97,6 +97,14 @@ export const assinaturaSchema = z.object({
     .min(1, "Informe o nome e desenhe a assinatura.")
     .max(120, "Nome muito longo."),
   cargo: z.string().trim().max(120, "Cargo muito longo.").optional(),
+  // Opcional, mas é a evidência de identidade mais útil depois do nome, e é
+  // para onde vai o comprovante do aceite.
+  email: z.union([z.literal(""), z.email("E-mail inválido.").max(200)]).optional(),
+  // Consentimento explícito: a caixa da declaração precisa estar marcada.
+  aceite: z.literal(true, { error: "Marque a declaração de aceite para assinar." }),
+  // Hash do documento que a página mostrou. O servidor só aceita se ainda for
+  // o documento atual (lib/store, assinarProposta).
+  hashVisto: z.string().regex(/^[0-9a-f]{64}$/, "Recarregue a página e assine de novo."),
   // Só aceita PNG embutido em base64, que é o que o canvas gera. Barra URL
   // externa (rastreador num documento assinado) e qualquer outro formato.
   imagemPng: z

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, Proposal, StatusProposta } from "./types";
+import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, Proposal, StatusProposta, VersaoDocumento } from "./types";
+import { congelarDocumento, hashDocumento, hashDocumentoAtual } from "./assinatura";
 import { hashBriefing } from "./briefing-hash";
 import { dataEmissao } from "./crm";
 
@@ -128,25 +129,54 @@ export async function excluirDefinitivo(id: string): Promise<"excluida" | "nao-e
   return "excluida";
 }
 
+export type EntradaAssinatura = Pick<
+  Assinatura,
+  "nome" | "cargo" | "email" | "imagemPng" | "ip" | "navegador" | "declaracao"
+>;
+
+export type ResultadoAssinatura =
+  | { ok: Proposal }
+  | { erro: "nao-encontrada" | "ja-assinada" | "versao-mudou" };
+
+/**
+ * Grava o aceite congelando o documento que o cliente viu.
+ *
+ * `hashVisto` é o hash do documento que a página entregou ao cliente. Se a
+ * proposta foi editada depois disso, os hashes não batem e o aceite é
+ * recusado: ninguém assina uma versão que não leu. Leitura, conferência e
+ * gravação acontecem sem nenhum await no meio — o better-sqlite3 é síncrono,
+ * então nenhuma edição consegue entrar entre conferir e gravar.
+ */
 export async function assinarProposta(
   id: string,
-  assinatura: Assinatura
-): Promise<Proposal | null> {
+  entrada: EntradaAssinatura,
+  hashVisto: string
+): Promise<ResultadoAssinatura> {
   const db = getDb();
-  const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
-    | Row
-    | undefined;
-  if (!row) return null;
+  const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as Row | undefined;
+  if (!row) return { erro: "nao-encontrada" };
   const proposta = rowParaProposta(row);
-  if (proposta.assinatura) return proposta; // já assinada — não sobrescreve
+  if (proposta.excluidoEm) return { erro: "nao-encontrada" };
+  if (proposta.assinatura) return { erro: "ja-assinada" };
+
+  const documento = congelarDocumento(proposta);
+  const hash = hashDocumento(documento);
+  if (hash !== hashVisto) return { erro: "versao-mudou" };
+
+  const assinatura: Assinatura = {
+    ...entrada,
+    aceitoEm: new Date().toISOString(),
+    hashDocumento: hash,
+    documento,
+  };
   const atualizada: Proposal = { ...proposta, assinatura, status: "aceita" };
   salvarLinha(db, atualizada);
-  return atualizada;
+  return { ok: atualizada };
 }
 
-// Remove a assinatura atual pra que o cliente possa assinar de novo (ex.: depois
-// de editar uma proposta já aceita). O registro da assinatura anterior fica numa
-// nota do CRM, pra não sumir sem rastro.
+// Remove a assinatura atual pra que a proposta possa ser editada e assinada de
+// novo. Nada se perde: a assinatura liberada, com o documento congelado e as
+// evidências, vai para assinaturasAnteriores — e a nota do CRM registra o ato.
 export async function liberarAssinatura(id: string): Promise<Proposal | null> {
   const proposta = await buscarProposta(id);
   if (!proposta) return null;
@@ -163,6 +193,7 @@ export async function liberarAssinatura(id: string): Promise<Proposal | null> {
     ...resto,
     status: proposta.status === "aceita" ? "enviada" : proposta.status,
     notas: [...(proposta.notas || []), nota],
+    assinaturasAnteriores: [...(proposta.assinaturasAnteriores || []), anterior],
   };
   salvarLinha(getDb(), atualizada);
   return atualizada;
@@ -171,13 +202,17 @@ export async function liberarAssinatura(id: string): Promise<Proposal | null> {
 export async function atualizarProposta(
   id: string,
   patch: { briefing?: BriefingInput; gerado?: ConteudoGerado; geracao?: Geracao }
-): Promise<Proposal | null> {
+): Promise<Proposal | null | "assinada"> {
   const db = getDb();
   const row = db.prepare(`SELECT * FROM propostas WHERE id = ?`).get(id) as
     | Row
     | undefined;
   if (!row) return null;
   const proposta = rowParaProposta(row);
+  // Documento assinado é imutável: o que o cliente aceitou não muda por baixo
+  // dele. Para reemitir, primeiro libera a assinatura (que vai para o
+  // histórico) e só então edita.
+  if (proposta.assinatura) return "assinada";
 
   const briefing = patch.briefing ?? proposta.briefing;
 
@@ -191,11 +226,22 @@ export async function atualizarProposta(
     geracao = { ...patch.geracao, briefingHash: confere ? patch.geracao.briefingHash : undefined };
   }
 
+  // A versão que está saindo vai para o histórico, com o hash dela: dá para
+  // provar depois o que o cliente tinha em mãos em cada reemissão.
+  const versaoAnterior: VersaoDocumento = {
+    registradaEm: new Date().toISOString(),
+    hash: hashDocumentoAtual(proposta),
+    briefing: proposta.briefing,
+    gerado: proposta.gerado,
+    emitidaEm: dataEmissao(proposta).toISOString(),
+  };
+
   const atualizada: Proposal = {
     ...proposta,
     briefing,
     gerado: patch.gerado ?? proposta.gerado,
     geracao,
+    versoes: [...(proposta.versoes || []), versaoAnterior],
     // Reemissão: o documento mudou, então a data de revisão anda — e é dela
     // que a validade passa a contar (ver dataEmissao em lib/crm).
     atualizadoEm: new Date().toISOString(),

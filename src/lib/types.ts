@@ -70,11 +70,37 @@ export type Geracao = {
   briefingHash?: string;
 };
 
+/** O conteúdo exato que o cliente viu e assinou (ver lib/assinatura). */
+export type DocumentoAssinado = {
+  versao: 1;
+  briefing: BriefingInput;
+  gerado: ConteudoGerado;
+  emitidaEm: string;
+  validaAte: string;
+};
+
 export type Assinatura = {
   nome: string;
   cargo?: string;
   imagemPng: string; // data URL do traço desenhado
   aceitoEm: string;
+  // Evidências. Opcionais porque assinaturas anteriores a este registro não
+  // têm: a página mostra o que existir e não afirma o que não foi gravado.
+  email?: string;
+  ip?: string;
+  navegador?: string;
+  declaracao?: string;
+  hashDocumento?: string;
+  documento?: DocumentoAssinado;
+};
+
+/** Uma versão anterior do documento, guardada a cada reemissão. */
+export type VersaoDocumento = {
+  registradaEm: string;
+  hash: string;
+  briefing: BriefingInput;
+  gerado: ConteudoGerado;
+  emitidaEm: string;
 };
 
 export type StatusProposta =
@@ -114,6 +140,10 @@ export type Proposal = {
   gerado: ConteudoGerado;
   geracao: Geracao;
   assinatura?: Assinatura;
+  /** Assinaturas liberadas para reemissão, com tudo que provava cada uma. */
+  assinaturasAnteriores?: Assinatura[];
+  /** Versões anteriores do documento, uma por edição salva. */
+  versoes?: VersaoDocumento[];
   status?: StatusProposta;
   proximoContato?: string | null;
   notas?: NotaCrm[];

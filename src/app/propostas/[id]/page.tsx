@@ -11,6 +11,13 @@ import { formatarMoeda, moedaDe } from "@/lib/moeda";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
 import { bloqueioAssinatura, dataEmissao, dataValidade } from "@/lib/crm";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
+import {
+  dataHoraBrasilia,
+  hashDocumento,
+  hashDocumentoAtual,
+  mascararIp,
+  resumirNavegador,
+} from "@/lib/assinatura";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +43,14 @@ export default async function PropostaPage({
   const cookieStore = await cookies();
   const ehAdmin = verificarSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 
-  const { briefing, gerado, geracao } = proposta;
+  // Proposta assinada é montada a partir da cópia congelada no aceite: o que
+  // aparece aqui é exatamente o que o cliente assinou, não os dados vivos.
+  // Sem cópia (assinaturas antigas, ou ainda não assinada), usa os dados vivos.
+  const assinatura = proposta.assinatura;
+  const congelado = assinatura?.documento;
+  const briefing = congelado?.briefing ?? proposta.briefing;
+  const gerado = congelado?.gerado ?? proposta.gerado;
+  const { geracao } = proposta;
 
   // Todos os valores do documento na moeda da proposta (real, se não tiver).
   const moeda = moedaDe(briefing);
@@ -51,8 +65,19 @@ export default async function PropostaPage({
   // em Y" expunha ao cliente um rascunho que ele nunca viu. O histórico não se
   // perde — criadoEm continua no banco e no painel. Mesma conta que o painel e
   // o CRM usam pra marcar vencida (lib/crm), pra não discordarem do documento.
-  const emissao = dataEmissao(proposta);
-  const validade = dataValidade(proposta);
+  const emissao = congelado ? new Date(congelado.emitidaEm) : dataEmissao(proposta);
+  const validade = congelado ? new Date(congelado.validaAte) : dataValidade(proposta);
+
+  // Hash do documento desta página: o cliente só consegue assinar esta versão.
+  const hashAtual = hashDocumentoAtual(proposta);
+  // Integridade medida agora, não presumida: recalcula o hash da cópia
+  // congelada e compara com o registrado no aceite.
+  const integridade: "conferida" | "divergente" | "sem-registro" =
+    assinatura?.hashDocumento && congelado
+      ? hashDocumento(congelado) === assinatura.hashDocumento
+        ? "conferida"
+        : "divergente"
+      : "sem-registro";
   // Mesma regra da rota de assinatura (lib/crm): vencida ou encerrada não
   // mostra quadro, pra página não oferecer um aceite que o servidor recusa.
   const bloqueio = bloqueioAssinatura(proposta);
@@ -413,22 +438,72 @@ export default async function PropostaPage({
       {/* Aceite / assinatura */}
       <section className="section">
         <Eyebrow>{temComparativo ? "07" : "06"} · Aceite</Eyebrow>
-        {proposta.assinatura ? (
-          <div className="ledger" style={{ padding: 16 }}>
+        {assinatura ? (
+          <div className="ledger evitar-quebra" style={{ padding: 16 }}>
             <Measured titulo="Assinado">
               <span style={{ display: "block", marginBottom: 10 }}>
-                {proposta.assinatura.nome}
-                {proposta.assinatura.cargo && ` · ${proposta.assinatura.cargo}`} aceitou esta
-                proposta em{" "}
-                {new Date(proposta.assinatura.aceitoEm).toLocaleString("pt-BR")}.
+                {assinatura.nome}
+                {assinatura.cargo && ` · ${assinatura.cargo}`} aceitou esta proposta em{" "}
+                {dataHoraBrasilia(assinatura.aceitoEm)} (horário de Brasília).
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={proposta.assinatura.imagemPng}
-                alt={`Assinatura de ${proposta.assinatura.nome}`}
+                src={assinatura.imagemPng}
+                alt={`Assinatura de ${assinatura.nome}`}
                 style={{ maxWidth: 320, background: "#fff" }}
               />
             </Measured>
+
+            {/* Certificado do aceite: as evidências gravadas pelo servidor. */}
+            <dl
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(110px, auto) 1fr",
+                gap: "8px 18px",
+                margin: "4px 0 0",
+                padding: "14px 16px",
+                border: "1px solid var(--ledger-rule)",
+                fontFamily: "var(--mono)",
+                fontSize: 11.5,
+                color: "var(--ledger-ink)",
+              }}
+            >
+              {[
+                ["Signatário", [assinatura.nome, assinatura.cargo].filter(Boolean).join(" · ")],
+                ["E-mail", assinatura.email || "não informado"],
+                ["Data e hora", `${dataHoraBrasilia(assinatura.aceitoEm)} (Brasília)`],
+                // O link é compartilhável e IP é dado pessoal: completo só para o admin.
+                ["Endereço IP", ehAdmin ? assinatura.ip || "não registrado" : mascararIp(assinatura.ip)],
+                ["Navegador", resumirNavegador(assinatura.navegador)],
+                ["Declaração", assinatura.declaracao ? `"${assinatura.declaracao}"` : "não registrada"],
+                ["SHA-256", assinatura.hashDocumento || "não registrado"],
+              ].map(([rotulo, valor]) => (
+                <div key={rotulo} style={{ display: "contents" }}>
+                  <dt style={{ color: "var(--ledger-dim)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10 }}>
+                    {rotulo}
+                  </dt>
+                  <dd style={{ margin: 0, wordBreak: "break-all" }}>{valor}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {integridade === "conferida" && (
+              <Measured titulo="Integridade conferida">
+                O conteúdo desta página foi recalculado agora e tem o mesmo hash SHA-256 registrado
+                no momento do aceite: é exatamente o documento assinado.
+              </Measured>
+            )}
+            {integridade === "divergente" && (
+              <Flag titulo="Divergência de integridade">
+                O conteúdo armazenado não corresponde ao hash registrado no aceite. Não use este
+                documento como prova antes de investigar.
+              </Flag>
+            )}
+            {integridade === "sem-registro" && (
+              <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ledger-dim)" }}>
+                Aceite registrado antes do controle de integridade: não há hash para conferir.
+              </p>
+            )}
           </div>
         ) : bloqueio ? (
           // Sem quadro de assinatura, na tela e no PDF. Mesmo painel escuro do
@@ -461,7 +536,7 @@ export default async function PropostaPage({
                 Ao assinar abaixo, você confirma o aceite desta proposta nas condições descritas
                 acima.
               </p>
-              <SignaturePad propostaId={proposta.id} />
+              <SignaturePad propostaId={proposta.id} hashDocumento={hashAtual} />
             </div>
             {/* Campo de assinatura do PDF/impressão — na tela quem assina é o
                 SignaturePad acima. Usa o painel escuro do ledger, mas sem o

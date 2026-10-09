@@ -20,12 +20,13 @@ O **Lastro** nasceu pra resolver as duas coisas ao mesmo tempo: tirar o trabalho
 6. **Antes de mandar, você pode ajustar qualquer coisa** em `/admin/propostas/[id]/editar` — números do briefing ou o texto que a IA escreveu. A edição é direta e não chama a IA; quando você quiser o texto reescrito a partir do escopo que está na tela, o botão "Atualizar narrativa" faz isso sob demanda, e um selo ao lado da seção diz se a narrativa ainda bate com o escopo atual. Se a proposta já foi assinada, um aviso lembra que editar não desfaz a assinatura — e um botão libera o campo pro cliente assinar de novo, registrando a assinatura antiga como nota no CRM.
 7. **Cada item pode ser comparado com o mercado.** Se você marcar a categoria de um item (ex: "Catálogo Digital / Projeto de E-commerce"), a proposta mostra a faixa de preço de SP/BR ao lado do valor cobrado.
 8. **O cliente assina direto na página.** Sem PDF, sem e-mail de ida e volta: ele desenha a assinatura, o sistema grava nome, traço e data/hora — e o status da proposta muda pra "Aceita" sozinho. Proposta vencida, recusada ou perdida não aceita assinatura: no lugar do quadro aparece o motivo, e pra reabrir uma vencida basta editar e salvar, o que reemite o documento com nova validade. O PDF anexado traz um campo de assinatura no mesmo desenho do documento — painel escuro, assinatura, nome e cargo, data — pra quem preferir fechar no papel.
-9. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
-10. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card guarda o contato do cliente (nome, e-mail, telefone), a data do próximo follow-up e um histórico de notas — o e-mail cadastrado já pré-preenche o envio da próxima proposta, sem precisar caçar de novo.
-11. **Você recebe um aviso quando o cliente assina** (se configurar `ADMIN_EMAIL`) — um e-mail curto avisando quem assinou e link direto pro painel, sem precisar ficar checando o CRM.
-12. **Uma proposta parecida não começa do zero.** O botão "duplicar" no painel clona o briefing inteiro pra edição imediata — troca o cliente e os valores, sem preencher tudo de novo. O rascunho de uma proposta nova também se salva sozinho no navegador (`localStorage`), então fechar a aba sem querer não perde nada.
-13. **Proposta vencida não fica invisível.** A validade que você define no briefing vira um aviso em clay no painel e no CRM quando passa do prazo — só enquanto a proposta ainda está em aberto (uma já aceita, recusada ou perdida não "vence" mais).
-14. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, duplicar, excluir, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
+9. **Excluir não apaga na hora.** A proposta vai para a lixeira (`/admin/lixeira`): some do painel, do CRM e do link do cliente, mas dá para restaurar. Apagar de vez só funciona de dentro da lixeira.
+10. **Você manda a proposta por e-mail direto do painel**, com um PDF em anexo (gerado a partir da própria página, não de um template separado) e o link pra revisar e assinar — sem sair do navegador pra caçar o e-mail do cliente ou anexar arquivo manualmente.
+11. **Você acompanha o funil no CRM** em `/admin/crm` — um board por status (enviada, em negociação, aceita, recusada, perdida) que você arrasta e solta pra qualificar, igual num CRM de mercado. Cada card guarda o contato do cliente (nome, e-mail, telefone), a data do próximo follow-up e um histórico de notas — o e-mail cadastrado já pré-preenche o envio da próxima proposta, sem precisar caçar de novo.
+12. **Você recebe um aviso quando o cliente assina** (se configurar `ADMIN_EMAIL`) — um e-mail curto avisando quem assinou e link direto pro painel, sem precisar ficar checando o CRM.
+13. **Uma proposta parecida não começa do zero.** O botão "duplicar" no painel clona o briefing inteiro pra edição imediata — troca o cliente e os valores, sem preencher tudo de novo. O rascunho de uma proposta nova também se salva sozinho no navegador (`localStorage`), então fechar a aba sem querer não perde nada.
+14. **Proposta vencida não fica invisível.** A validade que você define no briefing vira um aviso em clay no painel e no CRM quando passa do prazo — só enquanto a proposta ainda está em aberto (uma já aceita, recusada ou perdida não "vence" mais).
+15. **Você gerencia tudo pelo painel** em `/admin` — busca por cliente, filtro por status, duplicar, excluir, valor total ativo e, discreto no rodapé, quanto cada geração de IA custou de verdade.
 
 ## Como funciona
 
@@ -99,6 +100,8 @@ Abra `.env.local` e preencha cada variável:
 | `ADMIN_EMAIL` | não | Recebe um aviso quando um cliente assina uma proposta. Sem essa variável, a notificação simplesmente não é enviada — não quebra a assinatura |
 | `CHROME_EXECUTABLE_PATH` | não | Caminho do Chrome usado pra gerar o PDF. Padrão assume macOS; em Linux costuma ser `/usr/bin/google-chrome` ou `/usr/bin/chromium` |
 | `NEXT_PUBLIC_SITE_URL` | em produção, sim | Endereço público, ex: `https://propostas.seudominio.com`. É o que vai no link "Revisar e assinar" do e-mail. Sem ela, o link sai do host da requisição, que atrás do proxy da hospedagem pode ser um endereço interno |
+| `LITESTREAM_REPLICA_URL` | em produção, sim | Destino do backup contínuo do banco, ex: `s3://bucket/lastro` (S3, Cloudflare R2, Backblaze B2). Só vale na imagem Docker; veja "Backup" abaixo |
+| `LITESTREAM_ACCESS_KEY_ID` / `LITESTREAM_SECRET_ACCESS_KEY` | com S3/R2/B2 | Credenciais do bucket do backup |
 | `DATA_DIR` | não | Pasta onde o SQLite é criado. Padrão `./data`. Em produção, aponte pra um volume persistente (veja "Deploy" abaixo) |
 
 ```bash
@@ -165,6 +168,26 @@ contêiner.
 Em produção, defina `NEXT_PUBLIC_SITE_URL` com o endereço público: é ele que
 vai no link do e-mail ao cliente.
 
+### Backup
+
+O volume guarda o banco, mas não protege contra perder o volume. Para isso a
+imagem traz o [Litestream](https://litestream.io), que replica cada escrita do
+SQLite para um bucket S3 ou compatível (Cloudflare R2 e Backblaze B2 têm cota
+gratuita que cobre o Lastro com folga). Basta definir:
+
+```bash
+LITESTREAM_REPLICA_URL=s3://seu-bucket/lastro
+LITESTREAM_ACCESS_KEY_ID=...
+LITESTREAM_SECRET_ACCESS_KEY=...
+```
+
+Para R2 ou B2, inclua o endpoint na URL (exemplos em `docker/litestream.yml`).
+Ao subir, o contêiner restaura o banco da réplica se o volume vier vazio e
+depois replica continuamente. Sem `LITESTREAM_REPLICA_URL`, ele sobe normalmente
+e avisa no log que o banco está sem backup externo. O CI testa esse ciclo:
+grava uma proposta, destrói o contêiner, sobe outro com o volume vazio e confere
+que ela voltou.
+
 Em Railway ou Render: aponte o serviço pra este repositório (eles detectam o
 `Dockerfile` sozinhos), anexe um volume persistente em `/data`, e configure
 as mesmas variáveis de ambiente do `.env.local` no painel deles.
@@ -175,7 +198,7 @@ Cada push na `main` e cada pull request roda o workflow
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml), em dois jobs:
 
 1. **qualidade:** lint, typecheck, testes, build e `npm audit` das dependências de produção (falha com vulnerabilidade alta ou crítica).
-2. **docker:** constrói a imagem e roda [`scripts/smoke-docker.sh`](scripts/smoke-docker.sh), que sobe o contêiner e confere o caminho de produção: healthcheck, processo sem root, login, SQLite gravando no volume, página pública e o PDF impresso pelo Chrome de dentro do contêiner.
+2. **docker:** constrói a imagem e roda [`scripts/smoke-docker.sh`](scripts/smoke-docker.sh), que sobe o contêiner e confere o caminho de produção: healthcheck, processo sem root, login, SQLite gravando no volume, página pública, o PDF impresso pelo Chrome de dentro do contêiner e o backup (grava, destrói o contêiner, restaura num volume vazio).
 
 ## Stack
 

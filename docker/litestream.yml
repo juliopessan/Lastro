@@ -1,0 +1,14 @@
+# Backup contínuo do SQLite do Lastro (https://litestream.io).
+# O entrypoint só liga o Litestream quando LITESTREAM_REPLICA_URL existe.
+#
+# Destinos aceitos na URL, por exemplo:
+#   s3://meu-bucket/lastro                                  (AWS S3)
+#   s3://meu-bucket/lastro?endpoint=<conta>.r2.cloudflarestorage.com   (Cloudflare R2)
+#   s3://meu-bucket/lastro?endpoint=s3.us-west-004.backblazeb2.com     (Backblaze B2)
+#   file:///replica/lastro                                  (pasta local; é o que o CI usa)
+# Credenciais de S3 e compatíveis: LITESTREAM_ACCESS_KEY_ID e
+# LITESTREAM_SECRET_ACCESS_KEY.
+dbs:
+  - path: ${DATA_DIR}/propostas.db
+    replica:
+      url: ${LITESTREAM_REPLICA_URL}

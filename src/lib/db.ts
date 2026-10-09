@@ -18,6 +18,9 @@ declare global {
 function criarConexao(): Database.Database {
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
+  // Espera até 5 s por um lock em vez de falhar na hora com SQLITE_BUSY. Em
+  // produção, o Litestream lê o WAL em paralelo para fazer o backup.
+  db.pragma("busy_timeout = 5000");
   db.exec(`
     CREATE TABLE IF NOT EXISTS propostas (
       id TEXT PRIMARY KEY,

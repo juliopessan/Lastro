@@ -31,6 +31,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium fonts-liberation fonts-dejavu-core ca-certificates tzdata \
   && rm -rf /var/lib/apt/lists/*
 
+# Litestream: backup contínuo do SQLite para S3/R2/B2 (ver docker/entrypoint.sh).
+# Versão fixa e checksum conferido contra o checksums.txt oficial da release.
+ARG LITESTREAM_VERSION=0.5.17
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+  && case "$(dpkg --print-architecture)" in \
+       amd64) ARQ=x86_64 ;; arm64) ARQ=arm64 ;; \
+       *) echo "arquitetura sem build do Litestream: $(dpkg --print-architecture)"; exit 1 ;; \
+     esac \
+  && DEB="litestream-${LITESTREAM_VERSION}-linux-${ARQ}.deb" \
+  && BASE="https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}" \
+  && cd /tmp \
+  && curl -fsSLO "${BASE}/${DEB}" \
+  && curl -fsSL "${BASE}/checksums.txt" | grep " ${DEB}$" | sha256sum -c - \
+  && dpkg -i "${DEB}" && rm -f "${DEB}" \
+  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
+  && litestream version
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CHROME_EXECUTABLE_PATH=/usr/bin/chromium
@@ -48,6 +65,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 # Binário nativo do better-sqlite3 (não vai no standalone)
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY docker/litestream.yml /etc/litestream.yml
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/lastro-entrypoint
 
 # Usuário sem privilégio: se algo no processo for comprometido, não é root.
 # Precisa de pasta pessoal gravável: o Chromium grava ali o perfil e o banco
@@ -63,4 +82,4 @@ VOLUME ["/data"]
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "server.js"]
+ENTRYPOINT ["lastro-entrypoint"]

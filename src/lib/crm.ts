@@ -48,9 +48,35 @@ export function dataValidade(p: DatasProposta & Pick<Proposal, "briefing">): Dat
 // ou perdida não "vence" mais. Usa a mesma data de validade que o documento
 // mostra, pra painel e proposta nunca discordarem sobre o prazo.
 export function propostaVencida(
-  p: DatasProposta & Pick<Proposal, "status" | "assinatura" | "briefing">
+  p: DatasProposta & Pick<Proposal, "status" | "assinatura" | "briefing">,
+  agora: number = Date.now()
 ): boolean {
   const status = statusEfetivo(p);
   if (status === "aceita" || status === "recusada" || status === "perdida") return false;
-  return dataValidade(p).getTime() < Date.now();
+  return dataValidade(p).getTime() < agora;
+}
+
+export type BloqueioAssinatura = "assinada" | "vencida" | "encerrada";
+
+/**
+ * Por que o cliente não pode assinar agora, ou null se pode. Fonte única da
+ * regra: a rota pública de assinatura, a página da proposta e o envio por
+ * e-mail perguntam a mesma coisa aqui, pra nunca discordarem.
+ *
+ * - "encerrada": recusada ou perdida. Reabrir é decisão de quem vende: basta
+ *   voltar o status no CRM.
+ * - "vencida": passou da validade que o próprio documento promete. Editar e
+ *   salvar reemite a proposta e reconta o prazo (ver dataEmissao).
+ *   Não vale pra status "aceita": se o negócio já foi fechado na conversa, o
+ *   cliente ainda pode formalizar a assinatura depois do prazo.
+ */
+export function bloqueioAssinatura(
+  p: DatasProposta & Pick<Proposal, "status" | "assinatura" | "briefing">,
+  agora: number = Date.now()
+): BloqueioAssinatura | null {
+  if (p.assinatura) return "assinada";
+  const status = statusEfetivo(p);
+  if (status === "recusada" || status === "perdida") return "encerrada";
+  if (status !== "aceita" && dataValidade(p).getTime() < agora) return "vencida";
+  return null;
 }

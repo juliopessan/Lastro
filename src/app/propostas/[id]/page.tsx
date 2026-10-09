@@ -9,7 +9,7 @@ import { EmailSendForm } from "@/components/EmailSendForm";
 import { SignaturePad } from "@/components/SignaturePad";
 import { formatBrl } from "@/lib/pricing";
 import { buscarCategoriaMercado, FONTE_BENCHMARK } from "@/lib/market-pricing";
-import { dataEmissao, dataValidade } from "@/lib/crm";
+import { bloqueioAssinatura, dataEmissao, dataValidade } from "@/lib/crm";
 import { SESSION_COOKIE, verificarSessionToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,9 @@ export default async function PropostaPage({
   // o CRM usam pra marcar vencida (lib/crm), pra não discordarem do documento.
   const emissao = dataEmissao(proposta);
   const validade = dataValidade(proposta);
+  // Mesma regra da rota de assinatura (lib/crm): vencida ou encerrada não
+  // mostra quadro, pra página não oferecer um aceite que o servidor recusa.
+  const bloqueio = bloqueioAssinatura(proposta);
 
   const comparativoSetup = briefing.itensInvestimento
     .map((item) => ({ item, categoria: buscarCategoriaMercado(item.categoriaMercado) }))
@@ -419,6 +422,30 @@ export default async function PropostaPage({
                 style={{ maxWidth: 320, background: "#fff" }}
               />
             </Measured>
+          </div>
+        ) : bloqueio ? (
+          // Sem quadro de assinatura, na tela e no PDF. Mesmo painel escuro do
+          // campo de assinatura, sem selo: não há nada verificado aqui, só o
+          // estado da proposta.
+          <div className="ledger evitar-quebra" style={{ padding: "26px 28px" }}>
+            <div style={{ border: "1px solid var(--ledger-rule)", padding: "22px 24px" }}>
+              <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ledger-dim)", marginBottom: 12 }}>Aceite indisponível</span>
+              <p style={{ color: "var(--ledger-ink)", fontSize: 13.5, lineHeight: 1.55, maxWidth: "62ch" }}>
+                {bloqueio === "vencida"
+                  ? `Esta proposta venceu em ${validade.toLocaleDateString("pt-BR")}. Fale com a UKode Labs para receber uma versão atualizada.`
+                  : "Esta proposta não está mais disponível para aceite. Fale com a UKode Labs se quiser retomar a conversa."}
+              </p>
+              {ehAdmin && (
+                <p
+                  className="no-print"
+                  style={{ color: "var(--ledger-dim)", fontSize: 12.5, lineHeight: 1.55, marginTop: 12, maxWidth: "62ch" }}
+                >
+                  {bloqueio === "vencida"
+                    ? "Só você vê isto: edite e salve a proposta para reemiti-la. A validade passa a contar da nova data e o quadro de assinatura volta."
+                    : "Só você vê isto: volte o status no CRM para reabrir o aceite."}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <>

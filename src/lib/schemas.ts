@@ -52,3 +52,26 @@ export const geracaoSchema = z.object({
   duracaoMs: z.number(),
   briefingHash: z.string().optional(),
 });
+
+/**
+ * Teto da imagem da assinatura. O quadro do SignaturePad tem 480x160 px: um
+ * PNG desse tamanho, mesmo rabiscado de ponta a ponta, fica bem abaixo disso.
+ * A rota é pública, então sem teto qualquer pessoa com o link grava o que
+ * quiser no banco.
+ */
+export const LIMITE_ASSINATURA_PNG = 512 * 1024;
+
+export const assinaturaSchema = z.object({
+  nome: z
+    .string({ error: "Informe o nome e desenhe a assinatura." })
+    .trim()
+    .min(1, "Informe o nome e desenhe a assinatura.")
+    .max(120, "Nome muito longo."),
+  cargo: z.string().trim().max(120, "Cargo muito longo.").optional(),
+  // Só aceita PNG embutido em base64, que é o que o canvas gera. Barra URL
+  // externa (rastreador num documento assinado) e qualquer outro formato.
+  imagemPng: z
+    .string({ error: "Informe o nome e desenhe a assinatura." })
+    .max(LIMITE_ASSINATURA_PNG, "Assinatura grande demais.")
+    .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, "Assinatura em formato inválido."),
+});

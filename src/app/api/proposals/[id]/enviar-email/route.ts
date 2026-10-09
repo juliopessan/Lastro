@@ -3,6 +3,7 @@ import { atualizarCrm, buscarProposta } from "@/lib/store";
 import { gerarPdfProposta } from "@/lib/pdf";
 import { enviarPropostaPorEmail } from "@/lib/email";
 import { urlInterna, urlPublica } from "@/lib/url";
+import { bloqueioAssinatura } from "@/lib/crm";
 
 export async function POST(
   req: NextRequest,
@@ -12,6 +13,21 @@ export async function POST(
   const proposta = await buscarProposta(id);
   if (!proposta) {
     return NextResponse.json({ erro: "Proposta não encontrada." }, { status: 404 });
+  }
+
+  // Não manda pro cliente um link de aceite que a rota de assinatura recusa.
+  const bloqueio = bloqueioAssinatura(proposta);
+  if (bloqueio === "vencida") {
+    return NextResponse.json(
+      { erro: "Proposta vencida. Edite e salve para reemiti-la com nova validade antes de enviar." },
+      { status: 409 }
+    );
+  }
+  if (bloqueio === "encerrada") {
+    return NextResponse.json(
+      { erro: "Proposta recusada ou perdida. Volte o status no CRM antes de enviar." },
+      { status: 409 }
+    );
   }
 
   const body = await req.json().catch(() => ({}));

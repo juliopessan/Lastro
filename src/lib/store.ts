@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
-import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, NotaCrm, Proposal, StatusProposta, VersaoDocumento } from "./types";
+import { Assinatura, BriefingInput, ConteudoGerado, Contato, Geracao, ItemCatalogo, NotaCrm, Proposal, StatusProposta, VersaoDocumento } from "./types";
+import { buscarCategoriaMercado } from "./market-pricing";
 import { congelarDocumento, hashDocumento, hashDocumentoAtual } from "./assinatura";
 import { hashBriefing } from "./briefing-hash";
 import { dataEmissao } from "./crm";
@@ -349,4 +350,55 @@ export function registrarLembrete(chave: string, resultado: string): void {
   getDb()
     .prepare(`INSERT OR REPLACE INTO lembretes_enviados (chave, em, resultado) VALUES (?, ?, ?)`)
     .run(chave, new Date().toISOString(), resultado.slice(0, 500));
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de serviços
+
+/**
+ * Categoria de mercado só fica se existir, for da unidade certa (projeto para
+ * setup, mensal para recorrência) e o item for em real: a tabela de
+ * referência é brasileira, e em outra moeda ela nunca é usada.
+ */
+function categoriaDoCatalogo(item: Pick<ItemCatalogo, "tipo" | "moeda" | "categoriaMercado">): string | undefined {
+  const c = buscarCategoriaMercado(item.categoriaMercado);
+  const unidade = item.tipo === "setup" ? "projeto" : "mensal";
+  return c && c.unidade === unidade && item.moeda === "BRL" ? c.id : undefined;
+}
+
+export async function listarCatalogo(): Promise<ItemCatalogo[]> {
+  const rows = getDb().prepare(`SELECT dados FROM catalogo`).all() as { dados: string }[];
+  return rows
+    .map((r) => JSON.parse(r.dados) as ItemCatalogo)
+    .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+export async function salvarItemCatalogo(
+  item: Omit<ItemCatalogo, "id" | "criadoEm">
+): Promise<ItemCatalogo> {
+  const completo: ItemCatalogo = {
+    ...item,
+    categoriaMercado: categoriaDoCatalogo(item),
+    id: randomUUID(),
+    criadoEm: new Date().toISOString(),
+  };
+  getDb().prepare(`INSERT INTO catalogo (id, dados) VALUES (?, ?)`).run(completo.id, JSON.stringify(completo));
+  return completo;
+}
+
+export async function atualizarItemCatalogo(
+  id: string,
+  item: Omit<ItemCatalogo, "id" | "criadoEm">
+): Promise<ItemCatalogo | null> {
+  const db = getDb();
+  const row = db.prepare(`SELECT dados FROM catalogo WHERE id = ?`).get(id) as { dados: string } | undefined;
+  if (!row) return null;
+  const atual = JSON.parse(row.dados) as ItemCatalogo;
+  const atualizado: ItemCatalogo = { ...item, categoriaMercado: categoriaDoCatalogo(item), id, criadoEm: atual.criadoEm };
+  db.prepare(`UPDATE catalogo SET dados = ? WHERE id = ?`).run(JSON.stringify(atualizado), id);
+  return atualizado;
+}
+
+export async function excluirItemCatalogo(id: string): Promise<boolean> {
+  return getDb().prepare(`DELETE FROM catalogo WHERE id = ?`).run(id).changes > 0;
 }

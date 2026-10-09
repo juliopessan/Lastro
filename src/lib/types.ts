@@ -96,6 +96,18 @@ export type Assinatura = {
 
 export type Visualizacao = { em: string; ip?: string; navegador?: string };
 
+/** Item do catálogo de serviços: vira linha de investimento ou de recorrência. */
+export type ItemCatalogo = {
+  id: string;
+  tipo: "setup" | "mensal";
+  nome: string;
+  descricao: string;
+  valor: number;
+  moeda: Moeda;
+  categoriaMercado?: string;
+  criadoEm: string;
+};
+
 /** Uma versão anterior do documento, guardada a cada reemissão. */
 export type VersaoDocumento = {
   registradaEm: string;

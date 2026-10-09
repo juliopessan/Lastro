@@ -82,6 +82,15 @@ export const crmPatchSchema = z.object({
     .optional(),
 });
 
+export const itemCatalogoSchema = z.object({
+  tipo: z.enum(["setup", "mensal"], { error: "Tipo inválido." }),
+  nome: z.string().trim().min(1, "Informe o nome do item.").max(120, "Nome muito longo."),
+  descricao: z.string().trim().max(500, "Descrição muito longa."),
+  valor: z.number({ error: "Valor inválido." }).finite().nonnegative("Valor não pode ser negativo."),
+  moeda: z.enum(MOEDAS),
+  categoriaMercado: z.string().optional(),
+});
+
 /**
  * Teto da imagem da assinatura. O quadro do SignaturePad tem 480x160 px: um
  * PNG desse tamanho, mesmo rabiscado de ponta a ponta, fica bem abaixo disso.

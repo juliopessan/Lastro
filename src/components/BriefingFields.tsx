@@ -1,15 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   BriefingInput,
   Frente,
   ItemInvestimento,
   ItemRecorrencia,
   FaseCronograma,
+  ItemCatalogo,
 } from "@/lib/types";
 import { categoriasPorUnidade, buscarCategoriaMercado } from "@/lib/market-pricing";
 import { formatBrl } from "@/lib/pricing";
-import { Moeda, MOEDAS, moedaDe, NOME_MOEDA, simboloMoeda } from "@/lib/moeda";
+import { formatarMoeda, Moeda, MOEDAS, moedaDe, NOME_MOEDA, simboloMoeda } from "@/lib/moeda";
 
 const categoriasProjeto = categoriasPorUnidade("projeto");
 const categoriasMensal = categoriasPorUnidade("mensal");
@@ -42,6 +44,97 @@ export function BriefingFields({
   // A tabela de referência de mercado é brasileira, em reais. Em outra moeda
   // a comparação exigiria cotação, então a categoria nem aparece.
   const emReal = moeda === "BRL";
+
+  // Catálogo de serviços (/admin/catalogo). Só aparecem itens da moeda desta
+  // proposta: inserir um item em real numa proposta em dólar seria trocar a
+  // moeda do valor sem converter.
+  const [catalogo, setCatalogo] = useState<ItemCatalogo[]>([]);
+  const [salvando, setSalvando] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/admin/catalogo")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((itens: ItemCatalogo[]) => {
+        if (ativo) setCatalogo(itens);
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const doCatalogo = (tipo: ItemCatalogo["tipo"]) => catalogo.filter((c) => c.tipo === tipo && c.moeda === moeda);
+  const jaNoCatalogo = (tipo: ItemCatalogo["tipo"], nome: string) =>
+    catalogo.some((c) => c.tipo === tipo && c.moeda === moeda && c.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+
+  function inserirDoCatalogo(id: string) {
+    const c = catalogo.find((x) => x.id === id);
+    if (!c) return;
+    const categoria = emReal && c.categoriaMercado ? { categoriaMercado: c.categoriaMercado } : {};
+    if (c.tipo === "setup") {
+      const novo: ItemInvestimento = { modulo: c.nome, descricao: c.descricao, valor: c.valor, ...categoria };
+      const primeiro = dados.itensInvestimento[0];
+      // Substitui a linha em branco que o formulário começa, em vez de deixá-la sobrando.
+      const soLinhaVazia =
+        dados.itensInvestimento.length === 1 && !primeiro.modulo.trim() && !primeiro.descricao.trim() && !primeiro.valor;
+      atualizar("itensInvestimento", soLinhaVazia ? [novo] : [...dados.itensInvestimento, novo]);
+    } else {
+      const novo: ItemRecorrencia = { servico: c.nome, descricao: c.descricao, valorMensal: c.valor, ...categoria };
+      atualizar("recorrencia", [...dados.recorrencia, novo]);
+    }
+  }
+
+  async function salvarNoCatalogo(
+    chave: string,
+    item: { tipo: ItemCatalogo["tipo"]; nome: string; descricao: string; valor: number; categoriaMercado?: string }
+  ) {
+    setSalvando((s) => ({ ...s, [chave]: "salvando…" }));
+    try {
+      const res = await fetch("/api/admin/catalogo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, moeda }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || "Não foi possível salvar.");
+      setCatalogo((xs) => [...xs, json]);
+      setSalvando((s) => ({ ...s, [chave]: "" }));
+    } catch (e) {
+      setSalvando((s) => ({ ...s, [chave]: e instanceof Error ? e.message : "Erro ao salvar." }));
+    }
+  }
+
+  const seletorCatalogo = (tipo: ItemCatalogo["tipo"]) =>
+    doCatalogo(tipo).length > 0 && (
+      <select
+        aria-label="Inserir do catálogo"
+        value=""
+        onChange={(e) => e.target.value && inserirDoCatalogo(e.target.value)}
+        style={{ background: "var(--paper-deep)", border: "1px solid var(--rule)", padding: "6px 8px", fontSize: 12.5, fontFamily: "var(--mono)", maxWidth: 260 }}
+      >
+        <option value="">+ Do catálogo</option>
+        {doCatalogo(tipo).map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.nome} · {formatarMoeda(c.valor, c.moeda)}
+          </option>
+        ))}
+      </select>
+    );
+
+  const linkSalvar = (chave: string, item: Parameters<typeof salvarNoCatalogo>[1]) =>
+    item.nome.trim() && !jaNoCatalogo(item.tipo, item.nome) ? (
+      <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={() => salvarNoCatalogo(chave, item)}
+          disabled={salvando[chave] === "salvando…"}
+          style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          salvar no catálogo
+        </button>
+        {salvando[chave] && <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>{salvando[chave]}</span>}
+      </span>
+    ) : null;
 
   // Frentes
   function addFrente() {
@@ -252,6 +345,7 @@ export function BriefingFields({
                 </option>
               ))}
             </select>
+            {seletorCatalogo("setup")}
             <button type="button" className="btn btn-ghost" onClick={addInvestimento}>
               + Item
             </button>
@@ -294,6 +388,13 @@ export function BriefingFields({
                     </button>
                   )}
                 </div>
+                {linkSalvar(`setup-${i}`, {
+                  tipo: "setup",
+                  nome: item.modulo,
+                  descricao: item.descricao,
+                  valor: item.valor,
+                  categoriaMercado: item.categoriaMercado,
+                })}
                 {emReal && (
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <select
@@ -342,9 +443,12 @@ export function BriefingFields({
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h3 style={{ fontSize: 15 }}>Recorrência mensal (opcional)</h3>
-          <button type="button" className="btn btn-ghost" onClick={addRecorrencia}>
-            + Serviço
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {seletorCatalogo("mensal")}
+            <button type="button" className="btn btn-ghost" onClick={addRecorrencia}>
+              + Serviço
+            </button>
+          </div>
         </div>
         {dados.recorrencia.length === 0 && (
           <p style={{ color: "var(--ink-faint)", fontSize: 13 }}>Nenhum serviço recorrente adicionado.</p>
@@ -378,6 +482,13 @@ export function BriefingFields({
                     ×
                   </button>
                 </div>
+                {linkSalvar(`mensal-${i}`, {
+                  tipo: "mensal",
+                  nome: item.servico,
+                  descricao: item.descricao,
+                  valor: item.valorMensal,
+                  categoriaMercado: item.categoriaMercado,
+                })}
                 {emReal && (
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <select

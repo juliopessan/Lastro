@@ -72,6 +72,9 @@ export default async function AdminPage() {
           <Link href="/admin/mercado" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
             Preços de mercado
           </Link>
+          <Link href="/admin/catalogo" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
+            Catálogo
+          </Link>
           <Link href="/admin/lixeira" className="btn btn-ghost" style={{ border: "1px solid var(--rule)" }}>
             Lixeira{naLixeira > 0 ? ` (${naLixeira})` : ""}
           </Link>

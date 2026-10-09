@@ -30,6 +30,11 @@ function criarConexao(): Database.Database {
     );
     -- Um registro por resumo diário já tratado: reiniciar o servidor não
     -- manda o mesmo resumo de novo (lib/agendador).
+    -- Itens que o admin vende com frequência, para inserir no briefing.
+    CREATE TABLE IF NOT EXISTS catalogo (
+      id TEXT PRIMARY KEY,
+      dados TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS lembretes_enviados (
       chave TEXT PRIMARY KEY,
       em TEXT NOT NULL,

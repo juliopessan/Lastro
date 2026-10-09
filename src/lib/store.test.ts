@@ -209,3 +209,56 @@ describe("reserva do resumo diário", () => {
     expect(store.reservarLembrete("resumo:2026-11-01")).toBe(false);
   });
 });
+
+describe("catálogo", () => {
+  it("salva, lista, atualiza e exclui", async () => {
+    const item = await store.salvarItemCatalogo({
+      tipo: "setup",
+      nome: "Landing page",
+      descricao: "Uma página",
+      valor: 3000,
+      moeda: "BRL",
+    });
+    expect((await store.listarCatalogo()).map((c) => c.id)).toContain(item.id);
+
+    const atualizado = await store.atualizarItemCatalogo(item.id, { ...item, valor: 3500 });
+    expect(atualizado?.valor).toBe(3500);
+    expect(atualizado?.criadoEm).toBe(item.criadoEm);
+
+    expect(await store.excluirItemCatalogo(item.id)).toBe(true);
+    expect((await store.listarCatalogo()).map((c) => c.id)).not.toContain(item.id);
+    expect(await store.excluirItemCatalogo(item.id)).toBe(false);
+  });
+
+  it("descarta categoria de mercado fora do real ou com unidade errada", async () => {
+    const emDolar = await store.salvarItemCatalogo({
+      tipo: "setup",
+      nome: "Loja",
+      descricao: "",
+      valor: 900,
+      moeda: "USD",
+      categoriaMercado: "ecommerce-mvp",
+    });
+    expect(emDolar.categoriaMercado).toBeUndefined();
+
+    const emReal = await store.salvarItemCatalogo({
+      tipo: "setup",
+      nome: "Loja",
+      descricao: "",
+      valor: 9000,
+      moeda: "BRL",
+      categoriaMercado: "ecommerce-mvp",
+    });
+    expect(emReal.categoriaMercado).toBe("ecommerce-mvp");
+
+    const mensalComCategoriaDeProjeto = await store.salvarItemCatalogo({
+      tipo: "mensal",
+      nome: "Suporte",
+      descricao: "",
+      valor: 500,
+      moeda: "BRL",
+      categoriaMercado: "ecommerce-mvp",
+    });
+    expect(mensalComCategoriaDeProjeto.categoriaMercado).toBeUndefined();
+  });
+});

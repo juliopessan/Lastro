@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualidade:
+    name: Lint, tipos, testes, build e auditoria
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22 # mesma versão da imagem Docker
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # Falha com vulnerabilidade alta ou crítica em dependência de produção.
+      # Foi assim que o next 16.3.5 passou despercebido: nada rodava isto.
+      - run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    name: Imagem Docker de ponta a ponta
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t lastro:ci .
+      - run: scripts/smoke-docker.sh lastro:ci
